@@ -1,0 +1,5 @@
+{
+  "name": "Valley Ride - Premium Cab Service in Kashmir",
+  "description": "Book reliable and premium cab services in Kashmir. Airport transfers, local tours, and outstation trips to Gulmarg, Pahalgam, and Sonmarg.",
+  "requestFramePermissions": ["geolocation"]
+}
