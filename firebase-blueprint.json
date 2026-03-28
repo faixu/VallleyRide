@@ -27,6 +27,21 @@
         "displayName": { "type": "string", "description": "User's display name" }
       },
       "required": ["uid", "email", "role"]
+    },
+    "SiteContent": {
+      "title": "Site Content",
+      "description": "Dynamic content for the website including text and image URLs.",
+      "type": "object",
+      "properties": {
+        "heroTitle": { "type": "string" },
+        "heroSubtitle": { "type": "string" },
+        "heroImage": { "type": "string" },
+        "aboutTitle": { "type": "string" },
+        "aboutText": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "whatsappNumber": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -37,6 +52,10 @@
     "/users/{userId}": {
       "schema": "User",
       "description": "Collection of user profiles and roles."
+    },
+    "/site_content/{contentId}": {
+      "schema": "SiteContent",
+      "description": "Dynamic site content settings."
     }
   }
 }

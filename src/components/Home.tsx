@@ -18,16 +18,30 @@ import {
   Twitter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 import BookingForm from './BookingForm';
 
 const Home = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [siteContent, setSiteContent] = useState<any>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    // Fetch dynamic site content
+    const unsubscribe = onSnapshot(doc(db, 'site_content', 'main'), (doc) => {
+      if (doc.exists()) {
+        setSiteContent(doc.data());
+      }
+    });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      unsubscribe();
+    };
   }, []);
 
   const navLinks = [
@@ -132,7 +146,7 @@ const Home = () => {
       <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://picsum.photos/seed/kashmir/1920/1080" 
+            src={siteContent?.heroImage || "https://picsum.photos/seed/kashmir/1920/1080"} 
             alt="Kashmir Landscape" 
             className="w-full h-full object-cover brightness-[0.4]"
             referrerPolicy="no-referrer"
@@ -150,16 +164,16 @@ const Home = () => {
               Premium Cab Service in Kashmir
             </span>
             <h1 className="text-5xl md:text-7xl font-bold leading-[1.1] tracking-tighter">
-              Ride Through Kashmir with <span className="text-brand-gold">Comfort & Trust</span>
+              {siteContent?.heroTitle || "Ride Through Kashmir with"} <span className="text-brand-gold">{siteContent?.heroTitleAccent || "Comfort & Trust"}</span>
             </h1>
             <p className="text-xl text-gray-300 max-w-lg">
-              Book your premium taxi for airport transfers, local sightseeing, and outstation trips. Reliable, safe, and scenic journeys await.
+              {siteContent?.heroSubtitle || "Book your premium taxi for airport transfers, local sightseeing, and outstation trips. Reliable, safe, and scenic journeys await."}
             </p>
             <div className="flex flex-wrap gap-4 pt-4">
-              <a href="tel:+916006580370" className="btn-primary px-8 py-4 text-lg flex items-center gap-2">
+              <a href={`tel:${siteContent?.phone || "+916006580370"}`} className="btn-primary px-8 py-4 text-lg flex items-center gap-2">
                 <Phone size={20} /> Book via Call
               </a>
-              <a href="https://wa.me/916006580370" className="btn-secondary px-8 py-4 text-lg flex items-center gap-2">
+              <a href={`https://wa.me/${(siteContent?.phone || "916006580370").replace(/\+/g, '')}`} className="btn-secondary px-8 py-4 text-lg flex items-center gap-2">
                 <MessageCircle size={20} /> WhatsApp Us
               </a>
             </div>
@@ -240,10 +254,17 @@ const Home = () => {
                 </div>
               ))}
             </div>
+            {siteContent?.aboutText && (
+              <div className="mt-8 p-6 bg-brand-green/5 rounded-2xl border border-brand-green/10">
+                <p className="text-gray-700 leading-relaxed italic">
+                  {siteContent.aboutText}
+                </p>
+              </div>
+            )}
           </div>
           <div className="relative">
             <img 
-              src="https://picsum.photos/seed/driver/800/1000" 
+              src={siteContent?.aboutImage || "https://picsum.photos/seed/driver/800/1000"} 
               alt="Professional Driver" 
               className="rounded-3xl shadow-2xl"
               referrerPolicy="no-referrer"
@@ -349,32 +370,32 @@ const Home = () => {
             <p className="text-gray-600 text-lg">Have questions or want a custom quote? Reach out to us via any of the channels below.</p>
             
             <div className="space-y-6">
-              <a href="tel:+916006580370" className="flex items-center gap-4 group">
+              <a href={`tel:${siteContent?.phone || "+916006580370"}`} className="flex items-center gap-4 group">
                 <div className="bg-brand-green text-white p-4 rounded-2xl group-hover:bg-brand-gold transition-colors"><Phone size={24} /></div>
                 <div>
                   <p className="text-sm text-gray-400 font-bold uppercase tracking-wider">Call Us</p>
-                  <p className="text-xl font-bold text-brand-green">+91 60065 80370</p>
+                  <p className="text-xl font-bold text-brand-green">{siteContent?.phone || "+91 60065 80370"}</p>
                 </div>
               </a>
-              <a href="https://wa.me/916006580370" className="flex items-center gap-4 group">
+              <a href={`https://wa.me/${(siteContent?.phone || "916006580370").replace(/\+/g, '')}`} className="flex items-center gap-4 group">
                 <div className="bg-green-500 text-white p-4 rounded-2xl group-hover:bg-green-600 transition-colors"><MessageCircle size={24} /></div>
                 <div>
                   <p className="text-sm text-gray-400 font-bold uppercase tracking-wider">WhatsApp</p>
-                  <p className="text-xl font-bold text-brand-green">+91 60065 80370</p>
+                  <p className="text-xl font-bold text-brand-green">{siteContent?.phone || "+91 60065 80370"}</p>
                 </div>
               </a>
-              <a href="mailto:flust786@gmail.com" className="flex items-center gap-4 group">
+              <a href={`mailto:${siteContent?.email || "flust786@gmail.com"}`} className="flex items-center gap-4 group">
                 <div className="bg-brand-gold text-white p-4 rounded-2xl group-hover:bg-brand-green transition-colors"><Mail size={24} /></div>
                 <div>
                   <p className="text-sm text-gray-400 font-bold uppercase tracking-wider">Email Us</p>
-                  <p className="text-xl font-bold text-brand-green">flust786@gmail.com</p>
+                  <p className="text-xl font-bold text-brand-green">{siteContent?.email || "flust786@gmail.com"}</p>
                 </div>
               </a>
               <div className="flex items-center gap-4">
                 <div className="bg-brand-green text-white p-4 rounded-2xl"><MapPin size={24} /></div>
                 <div>
                   <p className="text-sm text-gray-400 font-bold uppercase tracking-wider">Location</p>
-                  <p className="text-xl font-bold text-brand-green">Srinagar, Kashmir, India</p>
+                  <p className="text-xl font-bold text-brand-green">{siteContent?.address || "Srinagar, Kashmir, India"}</p>
                 </div>
               </div>
             </div>
@@ -428,9 +449,9 @@ const Home = () => {
           <div>
             <h4 className="text-xl font-bold mb-6 text-brand-gold">Contact Info</h4>
             <ul className="space-y-4 text-white/60">
-              <li className="flex items-center gap-3"><Phone size={18} className="text-brand-gold" /> +91 60065 80370</li>
-              <li className="flex items-center gap-3"><Mail size={18} className="text-brand-gold" /> flust786@gmail.com</li>
-              <li className="flex items-center gap-3"><MapPin size={18} className="text-brand-gold" /> Srinagar, Kashmir</li>
+              <li className="flex items-center gap-3"><Phone size={18} className="text-brand-gold" /> {siteContent?.phone || "+91 60065 80370"}</li>
+              <li className="flex items-center gap-3"><Mail size={18} className="text-brand-gold" /> {siteContent?.email || "flust786@gmail.com"}</li>
+              <li className="flex items-center gap-3"><MapPin size={18} className="text-brand-gold" /> {siteContent?.address || "Srinagar, Kashmir"}</li>
             </ul>
           </div>
         </div>
@@ -446,7 +467,7 @@ const Home = () => {
 
       {/* Floating WhatsApp Button */}
       <a 
-        href="https://wa.me/916006580370" 
+        href={`https://wa.me/${(siteContent?.phone || "916006580370").replace(/\+/g, '')}`} 
         className="fixed bottom-8 right-8 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center justify-center"
         target="_blank"
         rel="noopener noreferrer"
