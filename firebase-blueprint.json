@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "Booking": {
+      "title": "Booking",
+      "description": "A ride booking request from a customer.",
+      "type": "object",
+      "properties": {
+        "pickup": { "type": "string", "description": "Pickup location" },
+        "drop": { "type": "string", "description": "Drop-off location" },
+        "date": { "type": "string", "format": "date", "description": "Date of the ride" },
+        "passengers": { "type": "string", "description": "Number of passengers" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"], "description": "Status of the booking" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the booking was created" },
+        "customerEmail": { "type": "string", "format": "email", "description": "Email of the customer (if logged in or provided)" },
+        "customerPhone": { "type": "string", "description": "Phone number of the customer" }
+      },
+      "required": ["pickup", "drop", "date", "passengers", "status", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user of the application (customer or admin).",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User's email" },
+        "role": { "type": "string", "enum": ["admin", "customer"], "description": "User's role" },
+        "displayName": { "type": "string", "description": "User's display name" }
+      },
+      "required": ["uid", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Collection of ride bookings."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles and roles."
+    }
+  }
+}
