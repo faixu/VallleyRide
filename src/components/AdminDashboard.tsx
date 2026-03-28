@@ -44,6 +44,7 @@ const AdminDashboard = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const path = 'bookings';
@@ -74,11 +75,11 @@ const AdminDashboard = () => {
   };
 
   const deleteBooking = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this booking?')) return;
     const path = `bookings/${id}`;
     try {
       await deleteDoc(doc(db, 'bookings', id));
       toast.success('Booking deleted successfully.');
+      setDeletingId(null);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
     }
@@ -227,13 +228,33 @@ const AdminDashboard = () => {
                         <XCircle size={20} />
                       </button>
                     )}
-                    <button 
-                      onClick={() => deleteBooking(booking.id)}
-                      className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-600 hover:text-white transition-all"
-                      title="Delete Record"
-                    >
-                      <Trash2 size={20} />
-                    </button>
+                    {deletingId === booking.id ? (
+                      <div className="flex items-center gap-2 bg-red-50 p-1 rounded-lg border border-red-100">
+                        <span className="text-[10px] font-bold text-red-600 px-2 uppercase">Delete?</span>
+                        <button 
+                          onClick={() => deleteBooking(booking.id)}
+                          className="p-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-all"
+                          title="Confirm Delete"
+                        >
+                          <CheckCircle size={16} />
+                        </button>
+                        <button 
+                          onClick={() => setDeletingId(null)}
+                          className="p-1.5 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300 transition-all"
+                          title="Cancel Delete"
+                        >
+                          <XCircle size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => setDeletingId(booking.id)}
+                        className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-600 hover:text-white transition-all"
+                        title="Delete Record"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
