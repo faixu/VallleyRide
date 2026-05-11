@@ -78,6 +78,8 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ user, profile }) => {
       await updateDoc(doc(db, 'rides', rideId), {
         status: 'accepted',
         driverId: user.uid,
+        driverName: profile.displayName || 'Verified Driver',
+        driverPhone: profile.phone || profile.phoneNumber || '',
         acceptedAt: new Date().toISOString()
       });
       // Also mark driver as Busy/Engaged

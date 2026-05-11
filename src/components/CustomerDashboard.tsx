@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search, Navigation, Clock, Star, Car, Shield, Send, User, MessageCircle } from 'lucide-react';
+import { MapPin, Search, Navigation, Clock, Star, Car, Shield, Send, User, MessageCircle, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { APIProvider, Map, AdvancedMarker, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { db, collection, addDoc, onSnapshot, query, where, orderBy, handleFirestoreError, OperationType, limit, getDocs } from '../firebase';
@@ -301,14 +301,33 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, profile }) 
               </div>
 
               {activeRide.driverId && (
-                <div className="p-4 border-2 border-brand-green/10 rounded-2xl flex items-center gap-4 bg-brand-green/5">
-                   <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                      <User size={24} className="text-brand-green" />
-                   </div>
-                   <div className="flex-1">
-                      <p className="text-xs text-gray-500 font-bold tracking-tight">Driver Assigned</p>
-                      <p className="text-lg font-bold text-brand-green">Verified Partner</p>
-                   </div>
+                <div className="space-y-3">
+                  <div className="p-4 border-2 border-brand-green/10 rounded-2xl flex items-center gap-4 bg-brand-green/5">
+                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                        <User size={24} className="text-brand-green" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-xs text-gray-500 font-bold tracking-tight">Driver Assigned</p>
+                        <p className="text-lg font-bold text-brand-green">{activeRide.driverName || 'Verified Partner'}</p>
+                    </div>
+                  </div>
+                  
+                  {activeRide.driverPhone && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <a 
+                        href={`tel:${activeRide.driverPhone}`}
+                        className="flex items-center justify-center gap-2 py-3 bg-white border border-brand-green/20 text-brand-green rounded-xl font-bold text-sm hover:bg-brand-green hover:text-white transition-all shadow-sm"
+                      >
+                        <Phone size={16} /> Call Driver
+                      </a>
+                      <a 
+                        href={`sms:${activeRide.driverPhone}`}
+                        className="flex items-center justify-center gap-2 py-3 bg-white border border-brand-green/20 text-brand-green rounded-xl font-bold text-sm hover:bg-brand-green hover:text-white transition-all shadow-sm"
+                      >
+                        <MessageCircle size={16} /> Message
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
 
