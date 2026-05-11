@@ -18,6 +18,7 @@ import {
   Twitter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import BookingForm from './BookingForm';
@@ -48,7 +49,7 @@ const Home = () => {
     { name: 'Home', href: '#' },
     { name: 'Services', href: '#services' },
     { name: 'Our Fleet', href: '#fleet' },
-    { name: 'Testimonials', href: '#testimonials' },
+    { name: 'Drive with Us', href: '/drive' },
     { name: 'Contact', href: '#contact' },
   ];
 
@@ -98,13 +99,23 @@ const Home = () => {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <a 
-                key={link.name} 
-                href={link.href} 
-                className={`font-semibold hover:text-brand-gold transition-colors ${scrolled ? 'text-brand-green' : 'text-white'}`}
-              >
-                {link.name}
-              </a>
+              link.href.startsWith('/') ? (
+                <Link 
+                  key={link.name} 
+                  to={link.href} 
+                  className={`font-semibold hover:text-brand-gold transition-colors ${scrolled ? 'text-brand-green' : 'text-white'}`}
+                >
+                  {link.name}
+                </Link>
+              ) : (
+                <a 
+                  key={link.name} 
+                  href={link.href} 
+                  className={`font-semibold hover:text-brand-gold transition-colors ${scrolled ? 'text-brand-green' : 'text-white'}`}
+                >
+                  {link.name}
+                </a>
+              )
             ))}
             <a href="tel:+916006580370" className="btn-primary flex items-center gap-2">
               <Phone size={18} /> Call Now
@@ -127,14 +138,25 @@ const Home = () => {
               className="absolute top-full left-0 w-full bg-white shadow-xl p-6 md:hidden flex flex-col gap-4"
             >
               {navLinks.map((link) => (
-                <a 
-                  key={link.name} 
-                  href={link.href} 
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-lg font-bold text-brand-green border-b border-gray-100 pb-2"
-                >
-                  {link.name}
-                </a>
+                link.href.startsWith('/') ? (
+                  <Link 
+                    key={link.name} 
+                    to={link.href} 
+                    onClick={() => setIsMenuOpen(false)}
+                    className="text-lg font-bold text-brand-green border-b border-gray-100 pb-2"
+                  >
+                    {link.name}
+                  </Link>
+                ) : (
+                  <a 
+                    key={link.name} 
+                    href={link.href} 
+                    onClick={() => setIsMenuOpen(false)}
+                    className="text-lg font-bold text-brand-green border-b border-gray-100 pb-2"
+                  >
+                    {link.name}
+                  </a>
+                )
               ))}
               <a href="tel:+916006580370" className="btn-primary text-center py-4">Call Now</a>
             </motion.div>
@@ -430,7 +452,13 @@ const Home = () => {
             <h4 className="text-xl font-bold mb-6 text-brand-gold">Quick Links</h4>
             <ul className="space-y-4 text-white/60">
               {navLinks.map(link => (
-                <li key={link.name}><a href={link.href} className="hover:text-white transition-colors">{link.name}</a></li>
+                <li key={link.name}>
+                  {link.href.startsWith('/') ? (
+                    <Link to={link.href} className="hover:text-white transition-colors">{link.name}</Link>
+                  ) : (
+                    <a href={link.href} className="hover:text-white transition-colors">{link.name}</a>
+                  )}
+                </li>
               ))}
             </ul>
           </div>

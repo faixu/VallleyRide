@@ -8,6 +8,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ProfileSetup from './components/ProfileSetup';
 import ErrorBoundary from './components/ErrorBoundary';
+import DriverApplication from './components/DriverApplication';
 
 const App = () => {
   const [user, setUser] = useState<any>(null);
@@ -63,6 +64,7 @@ const App = () => {
       <Toaster position="top-center" reverseOrder={false} />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/drive" element={<DriverApplication />} />
         
         <Route 
           path="/login" 

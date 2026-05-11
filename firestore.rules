@@ -119,5 +119,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isSystemAdmin() || isDatabaseAdmin();
     }
+
+    // Driver Applications
+    match /driver_applications/{applicationId} {
+      allow create: if true; // Public application form
+      allow read, update, delete: if isSystemAdmin() || isDatabaseAdmin();
+    }
   }
 }

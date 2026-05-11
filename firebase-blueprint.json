@@ -80,6 +80,20 @@
         "email": { "type": "string" },
         "address": { "type": "string" }
       }
+    },
+    "DriverApplication": {
+      "title": "Driver Application",
+      "description": "Application data for potential drivers.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "vehicleModel": { "type": "string" },
+        "licenseDetails": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "reviewed", "accepted", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "phoneNumber", "vehicleModel", "licenseDetails"]
     }
   },
   "firestore": {
@@ -102,6 +116,10 @@
     "/bookings/{bookingId}": {
       "schema": "Ride",
       "description": "Legacy/Manual bookings (using Ride schema for compatibility)."
+    },
+    "/driver_applications/{applicationId}": {
+      "schema": "DriverApplication",
+      "description": "Potential driver applications."
     }
   }
 }
