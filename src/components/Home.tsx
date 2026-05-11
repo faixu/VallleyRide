@@ -422,10 +422,35 @@ const Home = () => {
             </div>
           </div>
           
-          <div className="bg-gray-100 rounded-3xl overflow-hidden h-[400px] lg:h-full shadow-inner relative">
-            <div className="absolute inset-0 flex items-center justify-center text-gray-400 flex-col gap-2">
-              <MapPin size={48} />
-              <p className="font-bold">Google Maps Embed Placeholder</p>
+          <div className="grid grid-cols-2 grid-rows-2 gap-4 h-[500px] lg:h-full">
+            <div className="row-span-2 relative overflow-hidden rounded-3xl shadow-xl group">
+              <img 
+                src="/src/assets/images/regenerated_image_1778487817919.avif" 
+                alt="Our Fleet" 
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-green/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+                <p className="text-white font-black text-xl uppercase tracking-widest">Luxury Travel</p>
+              </div>
+            </div>
+            <div className="relative overflow-hidden rounded-3xl shadow-xl group">
+              <img 
+                src="/src/assets/images/regenerated_image_1778487819455.jpg" 
+                alt="Our Fleet" 
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-brand-gold/20 mix-blend-overlay opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <div className="relative overflow-hidden rounded-3xl shadow-xl group">
+              <img 
+                src="/src/assets/images/regenerated_image_1778487816168.jpg" 
+                alt="Our Fleet" 
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-brand-gold/20 mix-blend-overlay opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </div>
         </div>
