@@ -5,7 +5,7 @@ import { APIProvider, Map, AdvancedMarker, useMap, useMapsLibrary } from '@vis.g
 import { db, collection, addDoc, onSnapshot, query, where, orderBy, handleFirestoreError, OperationType } from '../firebase';
 import toast from 'react-hot-toast';
 
-const API_KEY = process.env.GOOGLE_MAPS_PLATFORM_KEY || '';
+const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 interface CustomerDashboardProps {
   user: any;
@@ -70,15 +70,6 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, profile }) 
     }
   };
 
-  if (!API_KEY) {
-    return (
-      <div className="p-12 text-center bg-gray-50 min-h-screen flex flex-col items-center justify-center">
-        <MapPin size={48} className="text-gray-300 mb-4" />
-        <h2 className="text-xl font-bold text-gray-800">Google Maps API Required</h2>
-        <p className="text-gray-500 max-w-sm mt-2">Please add your GOOGLE_MAPS_PLATFORM_KEY to the project secrets to enable live tracking and precise location services.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-65px)] overflow-hidden">
@@ -243,20 +234,31 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, profile }) 
       </div>
 
       {/* Map View */}
-      <div className="flex-1 relative">
-        <APIProvider apiKey={API_KEY} version="weekly">
-          <Map
-            defaultCenter={{ lat: 34.0837, lng: 74.7973 }} // Srinagar
-            defaultZoom={13}
-            mapId="RIDE_SHARE_MAP"
-            gestureHandling={'greedy'}
-            disableDefaultUI={true}
-            style={{ width: '100%', height: '100%' }}
-            internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
-          >
-             {/* Future: Add markers for driver locations and routes */}
-          </Map>
-        </APIProvider>
+      <div className="flex-1 relative bg-gray-200">
+        {API_KEY ? (
+          <APIProvider apiKey={API_KEY} version="weekly">
+            <Map
+              defaultCenter={{ lat: 34.0837, lng: 74.7973 }} // Srinagar
+              defaultZoom={13}
+              mapId="RIDE_SHARE_MAP"
+              gestureHandling={'greedy'}
+              disableDefaultUI={true}
+              style={{ width: '100%', height: '100%' }}
+              internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
+            >
+               {/* Future: Add markers for driver locations and routes */}
+            </Map>
+          </APIProvider>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-[url('https://images.unsplash.com/photo-1540321200212-0749e7769991?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center">
+            <div className="absolute inset-0 bg-brand-green/20 backdrop-blur-[2px]" />
+            <div className="relative z-10 bg-white/90 p-8 rounded-3xl shadow-2xl border border-white max-w-sm text-center">
+              <MapPin size={40} className="text-brand-green mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Live Tracking Offline</h3>
+              <p className="text-sm text-gray-600 font-medium">Map services are currently in maintenance mode. You can still request rides via the sidebar or by calling our support line.</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
