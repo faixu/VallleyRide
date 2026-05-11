@@ -16,6 +16,16 @@
         "vehicleId": { "type": "string" },
         "currentRideId": { "type": "string" },
         "rating": { "type": "number" },
+        "totalTrips": { "type": "number" },
+        "bio": { "type": "string" },
+        "languages": { "type": "array", "items": { "type": "string" } },
+        "currentLocation": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "role"]

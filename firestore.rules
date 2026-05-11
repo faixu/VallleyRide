@@ -38,7 +38,7 @@ service cloud.firestore {
     // Profiles Collection
     match /profiles/{userId} {
       allow get: if isSignedIn();
-      allow list: if isSystemAdmin(); 
+      allow list: if isSignedIn(); 
       allow create: if isOwner(userId) && request.resource.data.role in ['customer', 'driver'];
       allow update: if (isOwner(userId) && 
                        request.resource.data.role == resource.data.role &&

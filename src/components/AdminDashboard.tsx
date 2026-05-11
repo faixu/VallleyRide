@@ -34,7 +34,9 @@ import {
   Image as ImageIcon,
   Save,
   Upload,
-  Shield
+  Shield,
+  Star,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { signOut, auth } from '../firebase';
@@ -73,6 +75,11 @@ interface Profile {
   verified: boolean;
   isAvailable?: boolean;
   phone?: string;
+  vehicleType?: string;
+  vehicleModel?: string;
+  plateNumber?: string;
+  totalTrips?: number;
+  bio?: string;
 }
 
 interface Ride {
@@ -117,6 +124,7 @@ const AdminDashboard = () => {
   const [filter, setFilter] = useState<string>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'bookings' | 'rides' | 'profiles' | 'content' | 'applications' | 'reviews'>('bookings');
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   
   const [siteContent, setSiteContent] = useState<SiteContent>({
     heroTitle: 'Ride Through Kashmir with',
@@ -201,6 +209,21 @@ const AdminDashboard = () => {
       toast.success("Verification status updated");
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `profiles/${uid}`);
+    }
+  };
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProfile) return;
+
+    try {
+      await updateDoc(doc(db, 'profiles', editingProfile.uid), {
+        ...editingProfile
+      });
+      toast.success('Profile updated successfully');
+      setEditingProfile(null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `profiles/${editingProfile.uid}`);
     }
   };
 
@@ -526,7 +549,15 @@ const AdminDashboard = () => {
                                </button>
                              ) : '-'}
                           </td>
-                          <td className="px-6 py-4 text-right">
+                          <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                             {p.role === 'driver' && (
+                               <button 
+                                 onClick={() => setEditingProfile(p)}
+                                 className="text-gray-400 hover:text-brand-gold transition-colors"
+                               >
+                                 <Edit size={18} />
+                               </button>
+                             )}
                              <button 
                                onClick={() => {
                                  if (window.confirm('Are you sure you want to delete this user profile?')) {
@@ -926,6 +957,113 @@ const AdminDashboard = () => {
           </div>
         )}
       </main>
+
+      {/* Editing Modal */}
+      {editingProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-2xl font-bold text-brand-green">Edit Driver Profile</h3>
+                <button onClick={() => setEditingProfile(null)} className="text-gray-400 hover:text-gray-600">
+                  <X />
+                </button>
+              </div>
+
+              <form onSubmit={handleProfileUpdate} className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Display Name</label>
+                    <input 
+                      type="text" 
+                      value={editingProfile.displayName}
+                      onChange={(e) => setEditingProfile({...editingProfile, displayName: e.target.value})}
+                      className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-brand-gold outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Phone Number</label>
+                    <input 
+                      type="text" 
+                      value={editingProfile.phone || ''}
+                      onChange={(e) => setEditingProfile({...editingProfile, phone: e.target.value})}
+                      className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-brand-gold outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Vehicle Category</label>
+                    <select 
+                      value={editingProfile.vehicleType || 'economy'}
+                      onChange={(e) => setEditingProfile({...editingProfile, vehicleType: e.target.value})}
+                      className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-brand-gold outline-none font-bold text-gray-700"
+                    >
+                      <option value="economy">Economy Sedan</option>
+                      <option value="premium">Premium SUV</option>
+                      <option value="suv">Luxury Van / SUV</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Vehicle Model</label>
+                    <input 
+                      type="text" 
+                      value={editingProfile.vehicleModel || ''}
+                      onChange={(e) => setEditingProfile({...editingProfile, vehicleModel: e.target.value})}
+                      className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-brand-gold outline-none"
+                      placeholder="e.g. White Maruti Swift"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Plate Number</label>
+                    <input 
+                      type="text" 
+                      value={editingProfile.plateNumber || ''}
+                      onChange={(e) => setEditingProfile({...editingProfile, plateNumber: e.target.value})}
+                      className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-brand-gold outline-none"
+                      placeholder="e.g. JK-01-AB-1234"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Trips</label>
+                    <input 
+                      type="number" 
+                      value={editingProfile.totalTrips || 0}
+                      onChange={(e) => setEditingProfile({...editingProfile, totalTrips: parseInt(e.target.value)})}
+                      className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-brand-gold outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Driver Biography</label>
+                  <textarea 
+                    rows={4}
+                    value={editingProfile.bio || ''}
+                    onChange={(e) => setEditingProfile({...editingProfile, bio: e.target.value})}
+                    className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-brand-gold outline-none"
+                    placeholder="Tell passengers about yourself..."
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setEditingProfile(null)}
+                    className="flex-1 py-4 border-2 border-gray-100 text-gray-500 rounded-2xl font-bold hover:bg-gray-50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 py-4 bg-brand-gold text-brand-green rounded-2xl font-black text-lg shadow-xl shadow-brand-gold/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  >
+                    Save Profile
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
