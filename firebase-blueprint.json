@@ -1,61 +1,107 @@
 {
   "entities": {
-    "Booking": {
-      "title": "Booking",
-      "description": "A ride booking request from a customer.",
+    "Profile": {
+      "title": "User Profile",
+      "description": "Extended user data for customers and drivers.",
       "type": "object",
       "properties": {
-        "pickup": { "type": "string", "description": "Pickup location" },
-        "drop": { "type": "string", "description": "Drop-off location" },
-        "date": { "type": "string", "format": "date", "description": "Date of the ride" },
-        "passengers": { "type": "string", "description": "Number of passengers" },
-        "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"], "description": "Status of the booking" },
-        "createdAt": { "type": "string", "format": "date-time", "description": "When the booking was created" },
-        "customerEmail": { "type": "string", "format": "email", "description": "Email of the customer (if logged in or provided)" },
-        "customerPhone": { "type": "string", "description": "Phone number of the customer" }
-      },
-      "required": ["pickup", "drop", "date", "passengers", "status", "createdAt"]
-    },
-    "User": {
-      "title": "User",
-      "description": "A user of the application (customer or admin).",
-      "type": "object",
-      "properties": {
-        "uid": { "type": "string", "description": "Firebase Auth UID" },
-        "email": { "type": "string", "format": "email", "description": "User's email" },
-        "role": { "type": "string", "enum": ["admin", "customer"], "description": "User's role" },
-        "displayName": { "type": "string", "description": "User's display name" }
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["customer", "driver", "admin"] },
+        "phone": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive", "online", "busy", "offline"] },
+        "verified": { "type": "boolean" },
+        "vehicleId": { "type": "string" },
+        "currentRideId": { "type": "string" },
+        "rating": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "role"]
     },
+    "Ride": {
+      "title": "Ride",
+      "description": "A real-time ride transaction.",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string" },
+        "driverId": { "type": "string" },
+        "pickup": {
+          "type": "object",
+          "properties": {
+            "address": { "type": "string" },
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "destination": {
+          "type": "object",
+          "properties": {
+            "address": { "type": "string" },
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "status": { "type": "string", "enum": ["requested", "accepted", "arrived", "started", "completed", "cancelled"] },
+        "vehicleType": { "type": "string", "enum": ["economy", "premium", "suv"] },
+        "estimatedFare": { "type": "number" },
+        "actualFare": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "acceptedAt": { "type": "string", "format": "date-time" },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerId", "pickup", "destination", "status", "createdAt"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Vehicle details for drivers.",
+      "type": "object",
+      "properties": {
+        "driverId": { "type": "string" },
+        "model": { "type": "string" },
+        "color": { "type": "string" },
+        "plateNumber": { "type": "string" },
+        "type": { "type": "string", "enum": ["economy", "premium", "suv"] },
+        "active": { "type": "boolean" }
+      },
+      "required": ["driverId", "model", "plateNumber", "type"]
+    },
     "SiteContent": {
       "title": "Site Content",
-      "description": "Dynamic content for the website including text and image URLs.",
+      "description": "Dynamic content for the website.",
       "type": "object",
       "properties": {
         "heroTitle": { "type": "string" },
         "heroSubtitle": { "type": "string" },
         "heroImage": { "type": "string" },
-        "aboutTitle": { "type": "string" },
-        "aboutText": { "type": "string" },
-        "contactEmail": { "type": "string" },
-        "contactPhone": { "type": "string" },
-        "whatsappNumber": { "type": "string" }
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" }
       }
     }
   },
   "firestore": {
-    "/bookings/{bookingId}": {
-      "schema": "Booking",
-      "description": "Collection of ride bookings."
+    "/profiles/{userId}": {
+      "schema": "Profile",
+      "description": "User profiles and statuses."
     },
-    "/users/{userId}": {
-      "schema": "User",
-      "description": "Collection of user profiles and roles."
+    "/rides/{rideId}": {
+      "schema": "Ride",
+      "description": "Real-time ride records."
+    },
+    "/vehicles/{vehicleId}": {
+      "schema": "Vehicle",
+      "description": "Registered vehicles."
     },
     "/site_content/{contentId}": {
       "schema": "SiteContent",
-      "description": "Dynamic site content settings."
+      "description": "Dynamic site content."
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Ride",
+      "description": "Legacy/Manual bookings (using Ride schema for compatibility)."
     }
   }
 }

@@ -32,22 +32,11 @@ import {
   Edit,
   Image as ImageIcon,
   Save,
-  Upload
+  Upload,
+  Shield
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { signOut, auth } from '../firebase';
-
-interface Booking {
-  id: string;
-  pickup: string;
-  drop: string;
-  date: string;
-  passengers: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
-  createdAt: any;
-  customerPhone: string;
-  customerEmail?: string;
-}
 
 interface SiteContent {
   heroTitle: string;
@@ -62,12 +51,46 @@ interface SiteContent {
   address: string;
 }
 
+interface Booking {
+  id: string;
+  pickup: string;
+  drop: string;
+  date: string;
+  passengers: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  createdAt: any;
+  customerPhone: string;
+  customerEmail?: string;
+}
+
+interface Profile {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: 'customer' | 'driver' | 'admin';
+  status: string;
+  verified: boolean;
+}
+
+interface Ride {
+  id: string;
+  customerId: string;
+  customerName: string;
+  pickup: { address: string };
+  destination: { address: string };
+  status: string;
+  estimatedFare: number;
+  createdAt: string;
+}
+
 const AdminDashboard = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [rides, setRides] = useState<Ride[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'bookings' | 'content'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'rides' | 'profiles' | 'content'>('bookings');
   
   const [siteContent, setSiteContent] = useState<SiteContent>({
     heroTitle: 'Ride Through Kashmir with',
@@ -85,17 +108,29 @@ const AdminDashboard = () => {
   useEffect(() => {
     // Listen for bookings
     const bookingsPath = 'bookings';
-    const q = query(collection(db, bookingsPath), orderBy('createdAt', 'desc'));
-    
-    const unsubscribeBookings = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Booking[];
-      setBookings(data);
+    const qBookings = query(collection(db, bookingsPath), orderBy('createdAt', 'desc'));
+    const unsubscribeBookings = onSnapshot(qBookings, (snapshot) => {
+      setBookings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Booking[]);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, bookingsPath);
+    });
+
+    // Listen for real-time rides
+    const ridesPath = 'rides';
+    const qRides = query(collection(db, ridesPath), orderBy('createdAt', 'desc'));
+    const unsubscribeRides = onSnapshot(qRides, (snapshot) => {
+      setRides(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Ride[]);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, ridesPath);
+    });
+
+    // Listen for profiles
+    const profilesPath = 'profiles';
+    const unsubscribeProfiles = onSnapshot(collection(db, profilesPath), (snapshot) => {
+      setProfiles(snapshot.docs.map(doc => ({ ...doc.data() })) as Profile[]);
       setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, bookingsPath);
+      handleFirestoreError(error, OperationType.GET, profilesPath);
     });
 
     // Listen for site content
@@ -108,9 +143,20 @@ const AdminDashboard = () => {
 
     return () => {
       unsubscribeBookings();
+      unsubscribeRides();
+      unsubscribeProfiles();
       unsubscribeContent();
     };
   }, []);
+
+  const toggleVerification = async (uid: string, current: boolean) => {
+    try {
+      await updateDoc(doc(db, 'profiles', uid), { verified: !current });
+      toast.success("Verification status updated");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `profiles/${uid}`);
+    }
+  };
 
   const handleContentUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,19 +235,21 @@ const AdminDashboard = () => {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-6">
             <h1 className="text-2xl font-bold tracking-tighter">VALLEY<span className="text-brand-gold">ADMIN</span></h1>
-            <nav className="hidden md:flex items-center gap-4 ml-8">
-              <button 
-                onClick={() => setActiveTab('bookings')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'bookings' ? 'bg-white text-brand-green' : 'hover:bg-white/10'}`}
-              >
-                Bookings
-              </button>
-              <button 
-                onClick={() => setActiveTab('content')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'content' ? 'bg-white text-brand-green' : 'hover:bg-white/10'}`}
-              >
-                Manage Content
-              </button>
+            <nav className="hidden md:flex items-center gap-2 ml-8 overflow-x-auto">
+              {[
+                { id: 'bookings', label: 'Legacy Bookings' },
+                { id: 'rides', label: 'Real-time Rides' },
+                { id: 'profiles', label: 'User Profiles' },
+                { id: 'content', label: 'Manage Content' }
+              ].map(tab => (
+                <button 
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white text-brand-green shadow-lg' : 'hover:bg-white/10'}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </nav>
           </div>
           <button 
@@ -214,10 +262,10 @@ const AdminDashboard = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 mt-10">
-        {activeTab === 'bookings' ? (
+        {activeTab === 'bookings' && (
           <>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-              <h2 className="text-3xl font-bold text-brand-green">Ride Bookings</h2>
+              <h2 className="text-3xl font-bold text-brand-green">Legacy Bookings</h2>
               
               <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
                 <Filter size={18} className="text-gray-400 ml-2" />
@@ -227,126 +275,43 @@ const AdminDashboard = () => {
                   className="bg-transparent focus:outline-none text-sm font-semibold text-gray-700 pr-4"
                 >
                   <option value="all">All Bookings</option>
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
+                  {[...new Set(bookings.map(b => b.status))].map(s => (
+                    <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                  ))}
                 </select>
               </div>
             </div>
 
             {filteredBookings.length === 0 ? (
               <div className="bg-white p-12 rounded-2xl text-center border border-gray-100 shadow-sm">
-                <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="text-gray-300" size={32} />
-                </div>
-                <h3 className="text-xl font-bold text-gray-700 mb-2">No bookings found</h3>
-                <p className="text-gray-500">When customers book rides, they will appear here.</p>
+                <p className="text-gray-500">No bookings matching filters.</p>
               </div>
             ) : (
               <div className="grid gap-6">
                 {filteredBookings.map((booking) => (
-                  <div key={booking.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                  <div key={booking.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex flex-col lg:flex-row justify-between gap-6">
                       <div className="flex-1 grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div className="space-y-1">
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Route</p>
+                          <p className="text-xs font-bold text-gray-400 uppercase">Route</p>
                           <div className="flex items-center gap-2 text-brand-green font-bold">
-                            <MapPin size={16} className="text-brand-gold" />
-                            <span>{booking.pickup} → {booking.drop}</span>
+                            <MapPin size={16} /> <span>{booking.pickup} → {booking.drop}</span>
                           </div>
                         </div>
-                        
                         <div className="space-y-1">
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Schedule</p>
-                          <div className="flex items-center gap-2 text-gray-700 font-semibold">
-                            <Calendar size={16} className="text-brand-gold" />
-                            <span>{booking.date}</span>
+                          <p className="text-xs font-bold text-gray-400 uppercase">Schedule</p>
+                          <div className="flex items-center gap-2 text-gray-700 font-semibold uppercase">
+                            <Calendar size={16} /> <span>{booking.date}</span>
                           </div>
                         </div>
-
                         <div className="space-y-1">
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</p>
-                          <div className="flex flex-col gap-1">
-                            <a href={`tel:${booking.customerPhone}`} className="flex items-center gap-2 text-brand-green font-bold hover:underline">
-                              <Phone size={16} className="text-brand-gold" />
-                              <span>{booking.customerPhone}</span>
-                            </a>
-                            <div className="flex items-center gap-2 text-gray-500 text-sm">
-                              <Users size={14} />
-                              <span>{booking.passengers} Passengers</span>
-                            </div>
-                          </div>
+                          <p className="text-xs font-bold text-gray-400 uppercase">Contact</p>
+                          <p className="font-bold text-brand-green">{booking.customerPhone}</p>
                         </div>
-
                         <div className="space-y-1">
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Status</p>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusColor(booking.status)}`}>
-                              {booking.status}
-                            </span>
-                            <p className="text-[10px] text-gray-400">
-                              {booking.createdAt?.seconds ? format(new Date(booking.createdAt.seconds * 1000), 'MMM d, h:mm a') : 'Just now'}
-                            </p>
-                          </div>
+                          <p className="text-xs font-bold text-gray-400 uppercase">Status</p>
+                          <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${getStatusColor(booking.status)}`}>{booking.status}</span>
                         </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 lg:border-l lg:pl-6 border-gray-100">
-                        {booking.status === 'pending' && (
-                          <button 
-                            onClick={() => updateStatus(booking.id, 'confirmed')}
-                            className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all"
-                            title="Confirm Booking"
-                          >
-                            <CheckCircle size={20} />
-                          </button>
-                        )}
-                        {booking.status === 'confirmed' && (
-                          <button 
-                            onClick={() => updateStatus(booking.id, 'completed')}
-                            className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all"
-                            title="Mark as Completed"
-                          >
-                            <CheckCircle size={20} />
-                          </button>
-                        )}
-                        {booking.status !== 'cancelled' && booking.status !== 'completed' && (
-                          <button 
-                            onClick={() => updateStatus(booking.id, 'cancelled')}
-                            className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"
-                            title="Cancel Booking"
-                          >
-                            <XCircle size={20} />
-                          </button>
-                        )}
-                        {deletingId === booking.id ? (
-                          <div className="flex items-center gap-2 bg-red-50 p-1 rounded-lg border border-red-100">
-                            <span className="text-[10px] font-bold text-red-600 px-2 uppercase">Delete?</span>
-                            <button 
-                              onClick={() => deleteBooking(booking.id)}
-                              className="p-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-all"
-                              title="Confirm Delete"
-                            >
-                              <CheckCircle size={16} />
-                            </button>
-                            <button 
-                              onClick={() => setDeletingId(null)}
-                              className="p-1.5 bg-gray-200 text-gray-600 rounded-md hover:bg-gray-300 transition-all"
-                              title="Cancel Delete"
-                            >
-                              <XCircle size={16} />
-                            </button>
-                          </div>
-                        ) : (
-                          <button 
-                            onClick={() => setDeletingId(booking.id)}
-                            className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-600 hover:text-white transition-all"
-                            title="Delete Record"
-                          >
-                            <Trash2 size={20} />
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -354,7 +319,99 @@ const AdminDashboard = () => {
               </div>
             )}
           </>
-        ) : (
+        )}
+
+        {activeTab === 'rides' && (
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-brand-green">Real-time Rides</h2>
+            <div className="grid gap-6">
+              {rides.length === 0 ? (
+                <div className="bg-white p-12 rounded-3xl text-center border border-gray-100">
+                  <p className="text-gray-400">No real-time rides found.</p>
+                </div>
+              ) : (
+                rides.map(ride => (
+                  <div key={ride.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between gap-6">
+                    <div className="space-y-2">
+                       <div className="flex items-center gap-3">
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${ride.status === 'requested' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'}`}>
+                            {ride.status}
+                          </span>
+                          <span className="text-xs text-gray-400 font-mono">#{ride.id.slice(0,8)}</span>
+                       </div>
+                       <p className="font-bold text-brand-green">{ride.pickup.address} → {ride.destination.address}</p>
+                       <p className="text-sm text-gray-500">Customer: <span className="font-bold">{ride.customerName}</span></p>
+                    </div>
+                    <div className="flex flex-col items-end justify-center">
+                       <p className="text-2xl font-bold text-brand-green tracking-tighter">₹{ride.estimatedFare}</p>
+                       <p className="text-xs text-gray-400">{format(new Date(ride.createdAt), 'MMM d, h:mm a')}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'profiles' && (
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-brand-green">User Profiles</h2>
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+               <table className="w-full text-left">
+                  <thead className="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                     <tr>
+                        <th className="px-6 py-4">User</th>
+                        <th className="px-6 py-4">Role</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Verification</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                     {profiles.map(p => (
+                       <tr key={p.uid} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-6 py-4">
+                             <p className="font-bold text-gray-900">{p.displayName || 'No Name'}</p>
+                             <p className="text-xs text-gray-400">{p.email}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${p.role === 'driver' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                               {p.role}
+                             </span>
+                          </td>
+                          <td className="px-6 py-4">
+                             <div className="flex items-center gap-2 uppercase text-[10px] font-bold">
+                                <div className={`w-2 h-2 rounded-full ${p.status === 'online' ? 'bg-green-500' : 'bg-gray-300'}`} />
+                                {p.status || 'offline'}
+                             </div>
+                          </td>
+                          <td className="px-6 py-4">
+                             {p.role === 'driver' ? (
+                               <div className="flex items-center gap-2">
+                                  {p.verified ? <Shield className="text-green-500" size={16} /> : <XCircle className="text-red-400" size={16} />}
+                                  <span className="text-xs font-medium">{p.verified ? 'Verified' : 'Pending'}</span>
+                               </div>
+                             ) : '-'}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                             {p.role === 'driver' && (
+                               <button 
+                                 onClick={() => toggleVerification(p.uid, p.verified)}
+                                 className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${p.verified ? 'text-red-500 bg-red-50 hover:bg-red-500 hover:text-white' : 'text-green-600 bg-green-50 hover:bg-green-600 hover:text-white'}`}
+                               >
+                                 {p.verified ? 'Revoke Verification' : 'Verify Driver'}
+                               </button>
+                             )}
+                          </td>
+                       </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'content' && (
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-3xl font-bold text-brand-green">Manage Site Content</h2>

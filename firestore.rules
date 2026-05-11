@@ -2,117 +2,122 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: users
-    // Document ID: userId (auth.uid)
-    // Fields:
-    //   - uid: string (required)
-    //   - email: string (required)
-    //   - role: string (required, 'admin' or 'customer')
-    //   - displayName: string (optional)
-    //
-    // Collection: bookings
-    // Document ID: bookingId (auto-generated)
-    // Fields:
-    //   - pickup: string (required)
-    //   - drop: string (required)
-    //   - date: string (required, YYYY-MM-DD)
-    //   - passengers: string (required)
-    //   - status: string (required, 'pending', 'confirmed', 'completed', 'cancelled')
-    //   - createdAt: timestamp (required)
-    //   - customerEmail: string (optional)
-    //   - customerPhone: string (required)
-    //
-    // ===============================================================
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
 
-    // ===============================================================
-    // Helper Functions
-    // ===============================================================
-
-    function isAuthenticated() {
+    // Helper functions
+    function isSignedIn() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Safe for list operations (no get() calls)
+    function isSystemAdmin() {
+      return isSignedIn() && 
+        (request.auth.token.email == "Flust786@gmail.com"); 
+    }
+
+    // This one uses get(), use ONLY for non-list operations
+    function isDatabaseAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isAdmin() {
-      return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "Flust786@gmail.com" && request.auth.token.email_verified == true));
+      return isSystemAdmin() || isDatabaseAdmin();
     }
 
-    function hasRequiredFields(fields) {
-      return request.resource.data.keys().hasAll(fields);
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    function hasOnlyAllowedFields(fields) {
-      return request.resource.data.keys().hasOnly(fields);
+    // Profiles Collection
+    match /profiles/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSystemAdmin(); 
+      allow create: if isOwner(userId) && request.resource.data.role in ['customer', 'driver'];
+      allow update: if (isOwner(userId) && 
+                       request.resource.data.role == resource.data.role &&
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))) || isSystemAdmin();
+      allow delete: if isSystemAdmin();
     }
 
-    function isValidEmail(email) {
-      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
-    }
-
-    function validStringLength(field, minLen, maxLen) {
-      return request.resource.data[field] is string &&
-        request.resource.data[field].size() >= minLen &&
-        request.resource.data[field].size() <= maxLen;
-    }
-
-    // ===============================================================
-    // Domain Validators
-    // ===============================================================
-
-    function isValidUser(data) {
-      return hasOnlyAllowedFields(['uid', 'email', 'role', 'displayName']) &&
-             data.uid == request.auth.uid &&
-             isValidEmail(data.email) &&
-             data.role in ['admin', 'customer'] &&
-             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100));
-    }
-
-    function isValidBooking(data) {
-      return hasRequiredFields(['pickup', 'drop', 'date', 'passengers', 'status', 'createdAt', 'customerPhone']) &&
-             hasOnlyAllowedFields(['pickup', 'drop', 'date', 'passengers', 'status', 'createdAt', 'customerEmail', 'customerPhone']) &&
-             data.pickup is string && data.pickup.size() > 0 && data.pickup.size() < 200 &&
-             data.drop is string && data.drop.size() > 0 && data.drop.size() < 200 &&
-             data.date is string && data.date.matches("^\\d{4}-\\d{2}-\\d{2}$") &&
-             data.passengers is string &&
-             data.status in ['pending', 'confirmed', 'completed', 'cancelled'] &&
-             data.createdAt is timestamp &&
-             data.customerPhone is string && data.customerPhone.size() >= 10 && data.customerPhone.size() <= 15 &&
-             (!('customerEmail' in data) || isValidEmail(data.customerEmail));
-    }
-
-    // ===============================================================
-    // Rules
-    // ===============================================================
-
+    // Legacy Users support
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == 'customer' || isAdmin());
-      allow update: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == resource.data.role || isAdmin());
+      allow get: if isOwner(userId) || isSystemAdmin();
+      allow list: if isSystemAdmin();
+      allow write: if isOwner(userId) || isSystemAdmin();
     }
 
+    // Rides Collection
+    match /rides/{rideId} {
+      function isValidRide(data) {
+        return data.customerId == request.auth.uid &&
+               data.status == 'requested' &&
+               data.pickup.address is string &&
+               data.destination.address is string;
+      }
+
+      allow get: if isSignedIn() && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.driverId == request.auth.uid ||
+        resource.data.status == 'requested' || // Drivers need to see details of requested rides
+        isSystemAdmin()
+      );
+
+      allow list: if isSignedIn() && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.driverId == request.auth.uid ||
+        resource.data.status == 'requested' || // Allowed for drivers to search
+        isSystemAdmin()
+      );
+
+      allow create: if isSignedIn() && isValidRide(request.resource.data);
+
+      allow update: if isSignedIn() && (
+        // Driver accepting a requested ride
+        (resource.data.status == 'requested' && 
+         request.resource.data.status == 'accepted' && 
+         request.resource.data.driverId == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'driverId', 'acceptedAt'])) ||
+        
+        // Driver progressing the ride
+        (resource.data.driverId == request.auth.uid && 
+         request.resource.data.status in ['arrived', 'started', 'completed'] &&
+         request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'startedAt', 'completedAt'])) ||
+
+        // Customer or Driver cancelling
+        (request.resource.data.status == 'cancelled' && 
+         (resource.data.customerId == request.auth.uid || resource.data.driverId == request.auth.uid)) ||
+
+        isAdmin()
+      );
+    }
+
+    // Vehicles Collection
+    match /vehicles/{vehicleId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.driverId == request.auth.uid;
+      allow update: if isSystemAdmin() || isDatabaseAdmin() || (isSignedIn() && resource.data.driverId == request.auth.uid);
+      allow delete: if isSystemAdmin() || isDatabaseAdmin();
+    }
+
+    // Bookings (Manual/Legacy)
     match /bookings/{bookingId} {
-      allow read: if isAdmin();
-      allow create: if isValidBooking(request.resource.data);
-      allow update: if isAdmin() && isValidBooking(request.resource.data);
-      allow delete: if isAdmin();
+      allow get: if isSystemAdmin();
+      allow list: if isSystemAdmin(); 
+      allow create: if true; // Public booking form
+      allow update, delete: if isSystemAdmin();
     }
 
+    // Site Content
     match /site_content/{contentId} {
       allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /{path=**} {
-      allow read, write: if false;
+      allow write: if isSystemAdmin() || isDatabaseAdmin();
     }
   }
 }

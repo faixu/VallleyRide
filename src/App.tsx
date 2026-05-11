@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { auth, onAuthStateChanged, db, doc, getDoc } from './firebase';
+import { auth, onAuthStateChanged, db, doc, getDoc, handleFirestoreError, OperationType } from './firebase';
 import Home from './components/Home';
 import AdminDashboard from './components/AdminDashboard';
 import Login from './components/Login';
+import Dashboard from './components/Dashboard';
+import ProfileSetup from './components/ProfileSetup';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const App = () => {
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
 
@@ -16,24 +19,29 @@ const App = () => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // Check if user is admin in Firestore
         try {
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-          if (userDoc.exists() && userDoc.data().role === 'admin') {
-            setIsAdmin(true);
+          // Check profile in 'profiles' collection
+          const profileDoc = await getDoc(doc(db, 'profiles', currentUser.uid));
+          if (profileDoc.exists()) {
+            const profileData = profileDoc.data();
+            setProfile(profileData);
+            setIsAdmin(profileData.role === 'admin' || (currentUser.email === 'Flust786@gmail.com' && currentUser.emailVerified));
           } else {
-            // Check if it's the default admin email
-            if (currentUser.email === 'Flust786@gmail.com' && currentUser.emailVerified) {
-              setIsAdmin(true);
+            // Legacy check or new user
+            const legacyDoc = await getDoc(doc(db, 'users', currentUser.uid));
+            if (legacyDoc.exists()) {
+              setProfile(legacyDoc.data());
+              setIsAdmin(legacyDoc.data().role === 'admin' || (currentUser.email === 'Flust786@gmail.com' && currentUser.emailVerified));
             } else {
-              setIsAdmin(false);
+              setProfile(null);
+              setIsAdmin(currentUser.email === 'Flust786@gmail.com' && currentUser.emailVerified);
             }
           }
         } catch (error) {
-          console.error('Error checking admin status:', error);
-          setIsAdmin(false);
+          handleFirestoreError(error, OperationType.GET, `profiles/${currentUser.uid}`);
         }
       } else {
+        setProfile(null);
         setIsAdmin(false);
       }
       setLoading(false);
@@ -55,16 +63,45 @@ const App = () => {
       <Toaster position="top-center" reverseOrder={false} />
       <Routes>
         <Route path="/" element={<Home />} />
+        
+        <Route 
+          path="/login" 
+          element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
+        />
+
+        <Route 
+          path="/dashboard" 
+          element={
+            user ? (
+              profile ? <Dashboard user={user} profile={profile} /> : <Navigate to="/setup-profile" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
+
+        <Route 
+          path="/setup-profile" 
+          element={
+            user ? (
+              profile ? <Navigate to="/dashboard" replace /> : <ProfileSetup user={user} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
+
         <Route 
           path="/admin" 
           element={
             user ? (
-              isAdmin ? <AdminDashboard /> : <Navigate to="/" replace />
+              isAdmin ? <AdminDashboard /> : <Navigate to="/dashboard" replace />
             ) : (
-              <Login />
+              <Navigate to="/login" replace />
             )
           } 
         />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </ErrorBoundary>
