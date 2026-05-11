@@ -668,8 +668,20 @@ const AdminDashboard = () => {
                           <>
                             <button 
                               onClick={async () => {
-                                await updateDoc(doc(db, 'driver_applications', app.id), { status: 'accepted' });
-                                toast.success('Application marked as accepted');
+                                try {
+                                  await updateDoc(doc(db, 'driver_applications', app.id), { status: 'accepted' });
+                                  
+                                  // Automatically verify the corresponding profile
+                                  const driverProfile = profiles.find(p => p.role === 'driver' && (p.displayName === app.fullName || p.phone === app.phoneNumber));
+                                  if (driverProfile) {
+                                    await updateDoc(doc(db, 'profiles', driverProfile.uid), { verified: true });
+                                    toast.success('Application accepted and driver verified!');
+                                  } else {
+                                    toast.success('Application accepted. (No matching profile found to verify automatically)');
+                                  }
+                                } catch (error) {
+                                  toast.error('Failed to update application');
+                                }
                               }}
                               className="bg-green-50 text-green-600 hover:bg-green-600 hover:text-white p-3 rounded-xl transition-all shadow-sm"
                               title="Accept"

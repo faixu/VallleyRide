@@ -1,19 +1,42 @@
-import React, { useState } from 'react';
-import { MapPin, Calendar, Users, Clock, Car } from 'lucide-react';
-import { db, addDoc, collection, handleFirestoreError, OperationType } from '../firebase';
+import React, { useState, useEffect } from 'react';
+import { MapPin, Calendar, Users, Clock, Car, User, CheckCircle } from 'lucide-react';
+import { db, addDoc, collection, handleFirestoreError, OperationType, query, where, onSnapshot } from '../firebase';
 import { serverTimestamp } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
 const BookingForm = () => {
   const [loading, setLoading] = useState(false);
+  const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     pickup: '',
     drop: '',
     date: '',
     vehicleType: 'economy',
     passengers: '1',
-    customerPhone: ''
+    customerPhone: '',
+    driverId: '',
+    driverName: ''
   });
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'profiles'),
+      where('role', '==', 'driver'),
+      where('verified', '==', true),
+      where('vehicleType', '==', formData.vehicleType)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+      setAvailableDrivers(docs);
+      // Reset selected driver if not in the new list
+      if (formData.driverId && !docs.find(d => d.uid === formData.driverId)) {
+        setFormData(prev => ({ ...prev, driverId: '', driverName: '' }));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [formData.vehicleType, formData.driverId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +60,9 @@ const BookingForm = () => {
         date: '',
         vehicleType: 'economy',
         passengers: '1',
-        customerPhone: ''
+        customerPhone: '',
+        driverId: '',
+        driverName: ''
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
@@ -133,6 +158,36 @@ const BookingForm = () => {
             className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-gold" 
           />
         </div>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+            <User size={14} /> Registered Drivers
+          </label>
+          <select 
+            value={formData.driverId}
+            onChange={(e) => {
+              const driver = availableDrivers.find(d => d.uid === e.target.value);
+              setFormData({ 
+                ...formData, 
+                driverId: e.target.value, 
+                driverName: driver ? driver.displayName : '' 
+              });
+            }}
+            className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-gold font-medium"
+          >
+            <option value="">Select Verified Partner</option>
+            {availableDrivers.map(driver => (
+              <option key={driver.uid} value={driver.uid}>
+                {driver.displayName} ({driver.vehicleModel || 'Verified'})
+              </option>
+            ))}
+          </select>
+          {availableDrivers.length === 0 && (
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+              No verified drivers registered for this category
+            </p>
+          )}
+        </div>
+
         <button 
           type="submit" 
           disabled={loading}
