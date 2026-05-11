@@ -511,6 +511,7 @@ const AdminDashboard = () => {
                      <tr>
                         <th className="px-6 py-4">User</th>
                         <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Vehicle Type</th>
                         <th className="px-6 py-4">Availability</th>
                         <th className="px-6 py-4">Verified</th>
                         <th className="px-6 py-4 text-right">Actions</th>
@@ -527,6 +528,9 @@ const AdminDashboard = () => {
                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${p.role === 'driver' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
                                {p.role}
                              </span>
+                          </td>
+                          <td className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
+                             {p.role === 'driver' ? (p.vehicleType || 'Not Set') : '-'}
                           </td>
                           <td className="px-6 py-4">
                              <div className="flex items-center gap-2 uppercase text-[10px] font-bold">
