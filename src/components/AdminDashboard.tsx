@@ -71,6 +71,8 @@ interface Profile {
   role: 'customer' | 'driver' | 'admin';
   status: string;
   verified: boolean;
+  isAvailable?: boolean;
+  phone?: string;
 }
 
 interface Ride {
@@ -175,6 +177,15 @@ const AdminDashboard = () => {
     try {
       await updateDoc(doc(db, 'profiles', uid), { verified: !current });
       toast.success("Verification status updated");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `profiles/${uid}`);
+    }
+  };
+
+  const toggleAvailability = async (uid: string, current: boolean) => {
+    try {
+      await updateDoc(doc(db, 'profiles', uid), { isAvailable: !current });
+      toast.success(`Driver is now ${!current ? 'Available' : 'Busy'}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `profiles/${uid}`);
     }
@@ -345,33 +356,79 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === 'rides' && (
-          <div className="space-y-8">
-            <h2 className="text-3xl font-bold text-brand-green">Real-time Rides</h2>
-            <div className="grid gap-6">
-              {rides.length === 0 ? (
-                <div className="bg-white p-12 rounded-3xl text-center border border-gray-100">
-                  <p className="text-gray-400">No real-time rides found.</p>
+          <div className="space-y-12">
+            <div className="grid lg:grid-cols-3 gap-10">
+              <div className="lg:col-span-2 space-y-6">
+                <h2 className="text-3xl font-bold text-brand-green">Real-time Rides</h2>
+                <div className="grid gap-6">
+                  {rides.length === 0 ? (
+                    <div className="bg-white p-12 rounded-3xl text-center border border-gray-100">
+                      <p className="text-gray-400">No real-time rides found.</p>
+                    </div>
+                  ) : (
+                    rides.map(ride => (
+                      <div key={ride.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between gap-6">
+                        <div className="space-y-2">
+                           <div className="flex items-center gap-3">
+                              <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${ride.status === 'requested' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'}`}>
+                                {ride.status}
+                              </span>
+                              <span className="text-xs text-gray-400 font-mono">#{ride.id.slice(0,8)}</span>
+                           </div>
+                           <p className="font-bold text-brand-green">{ride.pickup.address} → {ride.destination.address}</p>
+                           <p className="text-sm text-gray-500">Customer: <span className="font-bold">{ride.customerName}</span></p>
+                        </div>
+                        <div className="flex flex-col items-end justify-center">
+                           <p className="text-2xl font-bold text-brand-green tracking-tighter">₹{ride.estimatedFare}</p>
+                           <p className="text-xs text-gray-400">{format(new Date(ride.createdAt), 'MMM d, h:mm a')}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-              ) : (
-                rides.map(ride => (
-                  <div key={ride.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between gap-6">
-                    <div className="space-y-2">
-                       <div className="flex items-center gap-3">
-                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${ride.status === 'requested' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'}`}>
-                            {ride.status}
-                          </span>
-                          <span className="text-xs text-gray-400 font-mono">#{ride.id.slice(0,8)}</span>
-                       </div>
-                       <p className="font-bold text-brand-green">{ride.pickup.address} → {ride.destination.address}</p>
-                       <p className="text-sm text-gray-500">Customer: <span className="font-bold">{ride.customerName}</span></p>
-                    </div>
-                    <div className="flex flex-col items-end justify-center">
-                       <p className="text-2xl font-bold text-brand-green tracking-tighter">₹{ride.estimatedFare}</p>
-                       <p className="text-xs text-gray-400">{format(new Date(ride.createdAt), 'MMM d, h:mm a')}</p>
-                    </div>
+              </div>
+
+              <div className="space-y-6">
+                <h2 className="text-3xl font-bold text-brand-green">Driver Status</h2>
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 bg-gray-50 border-b border-gray-100">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Live Assignment Status</p>
                   </div>
-                ))
-              )}
+                  <div className="divide-y divide-gray-50">
+                    {profiles.filter(p => p.role === 'driver').length === 0 ? (
+                      <div className="p-8 text-center text-gray-400 text-sm">No drivers currently on the platform.</div>
+                    ) : (
+                      profiles.filter(p => p.role === 'driver').map(driver => (
+                        <div key={driver.uid} className="p-4 flex items-center justify-between group">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
+                              <Car size={20} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-gray-900">{driver.displayName}</p>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-1.5 h-1.5 rounded-full ${driver.status === 'online' ? 'bg-green-500' : 'bg-gray-300'}`} />
+                                <span className="text-[9px] font-bold text-gray-400 uppercase">{driver.status || 'offline'}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <button 
+                            onClick={() => toggleAvailability(driver.uid, !!driver.isAvailable)}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all shadow-sm ${
+                              driver.isAvailable 
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                              : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                            }`}
+                          >
+                            {driver.isAvailable ? 'Free' : 'Busy'}
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -385,7 +442,8 @@ const AdminDashboard = () => {
                      <tr>
                         <th className="px-6 py-4">User</th>
                         <th className="px-6 py-4">Role</th>
-                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">App Status</th>
+                        <th className="px-6 py-4">Availability</th>
                         <th className="px-6 py-4">Verification</th>
                         <th className="px-6 py-4 text-right">Actions</th>
                      </tr>
@@ -407,6 +465,21 @@ const AdminDashboard = () => {
                                 <div className={`w-2 h-2 rounded-full ${p.status === 'online' ? 'bg-green-500' : 'bg-gray-300'}`} />
                                 {p.status || 'offline'}
                              </div>
+                          </td>
+                          <td className="px-6 py-4">
+                             {p.role === 'driver' ? (
+                               <button 
+                                 onClick={() => toggleAvailability(p.uid, !!p.isAvailable)}
+                                 className={`flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-tight py-1.5 px-3 rounded-full transition-all border-2 ${
+                                   p.isAvailable 
+                                   ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
+                                   : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100'
+                                 }`}
+                               >
+                                 <div className={`w-2 h-2 rounded-full ${p.isAvailable ? 'bg-green-500' : 'bg-orange-500'}`} />
+                                 {p.isAvailable ? 'Free for Bookings' : 'Currently Engaged'}
+                               </button>
+                             ) : '-'}
                           </td>
                           <td className="px-6 py-4">
                              {p.role === 'driver' ? (
@@ -457,9 +530,32 @@ const AdminDashboard = () => {
                         <span className="text-xs text-gray-400 font-mono">#{app.id.slice(0, 8)}</span>
                       </div>
                       
-                      <div className="space-y-1">
-                        <h3 className="text-xl font-bold text-gray-900">{app.fullName}</h3>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-xl font-bold text-gray-900">{app.fullName}</h3>
+                            {app.status === 'accepted' && (
+                              <div className="flex items-center gap-2">
+                                {(() => {
+                                  const driverProfile = profiles.find(p => p.role === 'driver' && (p.displayName === app.fullName || p.phone === app.phoneNumber));
+                                  if (!driverProfile) return null;
+                                  return (
+                                    <button 
+                                      onClick={() => toggleAvailability(driverProfile.uid, !!driverProfile.isAvailable)}
+                                      className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter py-1 px-2.5 rounded-full transition-all border-2 ${
+                                        driverProfile.isAvailable 
+                                        ? 'bg-green-50 text-green-700 border-green-200' 
+                                        : 'bg-orange-50 text-orange-700 border-orange-200'
+                                      }`}
+                                    >
+                                      <div className={`w-1.5 h-1.5 rounded-full ${driverProfile.isAvailable ? 'bg-green-500' : 'bg-orange-500'}`} />
+                                      {driverProfile.isAvailable ? 'Free for Bookings' : 'Currently Engaged'}
+                                    </button>
+                                  );
+                                })()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
                           <span className="flex items-center gap-1.5 font-bold text-brand-green">
                             <Phone size={14} /> {app.phoneNumber}
                           </span>

@@ -19,7 +19,9 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ user, profile }) => {
     const updateStatus = async () => {
       try {
         await updateDoc(doc(db, 'profiles', user.uid), {
-          status: online ? 'online' : 'offline'
+          status: online ? 'online' : 'offline',
+          // If going online and no active ride, set as available
+          isAvailable: online ? (!activeRide) : false
         });
       } catch (error) {
         console.error("Status update error:", error);
@@ -29,8 +31,8 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ user, profile }) => {
   }, [online, user.uid]);
 
   useEffect(() => {
-    // Listen for new ride requests if online and no active ride
-    if (online && !activeRide) {
+    // Listen for new ride requests if online, available, and no active ride
+    if (online && profile.isAvailable !== false && !activeRide) {
       const q = query(
         collection(db, 'rides'),
         where('status', '==', 'requested'),
@@ -78,6 +80,10 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ user, profile }) => {
         driverId: user.uid,
         acceptedAt: new Date().toISOString()
       });
+      // Also mark driver as Busy/Engaged
+      await updateDoc(doc(db, 'profiles', user.uid), {
+        isAvailable: false
+      });
       toast.success("Ride accepted! Head to the pickup location.");
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `rides/${rideId}`);
@@ -94,6 +100,10 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ user, profile }) => {
       await updateDoc(doc(db, 'rides', activeRide.id), updates);
       
       if (status === 'completed') {
+          // Mark driver as Available again
+          await updateDoc(doc(db, 'profiles', user.uid), {
+            isAvailable: true
+          });
           toast.success("Ride completed! Great job.");
           setActiveRide(null);
       } else {
