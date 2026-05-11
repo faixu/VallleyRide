@@ -19,7 +19,7 @@ service cloud.firestore {
     // Safe for list operations (no get() calls)
     function isSystemAdmin() {
       return isSignedIn() && 
-        (request.auth.token.email == "Flust786@gmail.com"); 
+        (request.auth.token.email.lower() == "flust786@gmail.com"); 
     }
 
     // This one uses get(), use ONLY for non-list operations

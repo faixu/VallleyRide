@@ -30,6 +30,7 @@ import {
   ChevronDown,
   Filter,
   Edit,
+  Car,
   Image as ImageIcon,
   Save,
   Upload,
@@ -83,14 +84,25 @@ interface Ride {
   createdAt: string;
 }
 
+interface DriverApplication {
+  id: string;
+  fullName: string;
+  phoneNumber: string;
+  vehicleModel: string;
+  licenseDetails: string;
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
+  createdAt: any;
+}
+
 const AdminDashboard = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [rides, setRides] = useState<Ride[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [applications, setApplications] = useState<DriverApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'bookings' | 'rides' | 'profiles' | 'content'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'rides' | 'profiles' | 'content' | 'applications'>('bookings');
   
   const [siteContent, setSiteContent] = useState<SiteContent>({
     heroTitle: 'Ride Through Kashmir with',
@@ -141,11 +153,21 @@ const AdminDashboard = () => {
       }
     });
 
+    // Listen for driver applications
+    const applicationsPath = 'driver_applications';
+    const qApps = query(collection(db, applicationsPath), orderBy('createdAt', 'desc'));
+    const unsubscribeApps = onSnapshot(qApps, (snapshot) => {
+      setApplications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as DriverApplication[]);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, applicationsPath);
+    });
+
     return () => {
       unsubscribeBookings();
       unsubscribeRides();
       unsubscribeProfiles();
       unsubscribeContent();
+      unsubscribeApps();
     };
   }, []);
 
@@ -240,6 +262,7 @@ const AdminDashboard = () => {
                 { id: 'bookings', label: 'Legacy Bookings' },
                 { id: 'rides', label: 'Real-time Rides' },
                 { id: 'profiles', label: 'User Profiles' },
+                { id: 'applications', label: 'Driver Apps' },
                 { id: 'content', label: 'Manage Content' }
               ].map(tab => (
                 <button 
@@ -407,6 +430,100 @@ const AdminDashboard = () => {
                      ))}
                   </tbody>
                </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'applications' && (
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-brand-green">Driver Applications</h2>
+            <div className="grid gap-6">
+              {applications.length === 0 ? (
+                <div className="bg-white p-12 rounded-3xl text-center border border-gray-100 shadow-sm">
+                  <p className="text-gray-400 font-medium">No applications received yet.</p>
+                </div>
+              ) : (
+                applications.map((app) => (
+                  <div key={app.id} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between gap-8 relative overflow-hidden group">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          app.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                          app.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {app.status}
+                        </span>
+                        <span className="text-xs text-gray-400 font-mono">#{app.id.slice(0, 8)}</span>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-bold text-gray-900">{app.fullName}</h3>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <span className="flex items-center gap-1.5 font-bold text-brand-green">
+                            <Phone size={14} /> {app.phoneNumber}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Car size={14} /> {app.vehicleModel}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <p className="text-xs font-bold text-gray-400 uppercase mb-2">License Details</p>
+                        <p className="text-sm text-gray-700 leading-relaxed font-medium italic">{app.licenseDetails}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col justify-between items-end gap-6 self-stretch min-w-[200px]">
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-gray-400 uppercase">Submitted On</p>
+                        <p className="text-sm font-bold text-gray-700">
+                          {app.createdAt?.seconds ? format(new Date(app.createdAt.seconds * 1000), 'MMM d, yyyy') : 'Recently'}
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        {app.status === 'pending' && (
+                          <>
+                            <button 
+                              onClick={async () => {
+                                await updateDoc(doc(db, 'driver_applications', app.id), { status: 'accepted' });
+                                toast.success('Application marked as accepted');
+                              }}
+                              className="bg-green-50 text-green-600 hover:bg-green-600 hover:text-white p-3 rounded-xl transition-all shadow-sm"
+                              title="Accept"
+                            >
+                              <CheckCircle size={20} />
+                            </button>
+                            <button 
+                              onClick={async () => {
+                                await updateDoc(doc(db, 'driver_applications', app.id), { status: 'rejected' });
+                                toast.success('Application marked as rejected');
+                              }}
+                              className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white p-3 rounded-xl transition-all shadow-sm"
+                              title="Reject"
+                            >
+                              <XCircle size={20} />
+                            </button>
+                          </>
+                        )}
+                        <button 
+                          onClick={async () => {
+                            if (window.confirm('Delete this application?')) {
+                              await deleteDoc(doc(db, 'driver_applications', app.id));
+                              toast.success('Application deleted');
+                            }
+                          }}
+                          className="bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-red-500 p-3 rounded-xl transition-all"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}

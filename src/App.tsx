@@ -26,16 +26,16 @@ const App = () => {
           if (profileDoc.exists()) {
             const profileData = profileDoc.data();
             setProfile(profileData);
-            setIsAdmin(profileData.role === 'admin' || (currentUser.email === 'Flust786@gmail.com' && currentUser.emailVerified));
+            setIsAdmin(profileData.role === 'admin' || (currentUser.email?.toLowerCase() === 'flust786@gmail.com' && currentUser.emailVerified));
           } else {
             // Legacy check or new user
             const legacyDoc = await getDoc(doc(db, 'users', currentUser.uid));
             if (legacyDoc.exists()) {
               setProfile(legacyDoc.data());
-              setIsAdmin(legacyDoc.data().role === 'admin' || (currentUser.email === 'Flust786@gmail.com' && currentUser.emailVerified));
+              setIsAdmin(legacyDoc.data().role === 'admin' || (currentUser.email?.toLowerCase() === 'flust786@gmail.com' && currentUser.emailVerified));
             } else {
               setProfile(null);
-              setIsAdmin(currentUser.email === 'Flust786@gmail.com' && currentUser.emailVerified);
+              setIsAdmin(currentUser.email?.toLowerCase() === 'flust786@gmail.com' && currentUser.emailVerified);
             }
           }
         } catch (error) {
@@ -75,7 +75,7 @@ const App = () => {
           path="/dashboard" 
           element={
             user ? (
-              profile ? <Dashboard user={user} profile={profile} /> : <Navigate to="/setup-profile" replace />
+              profile ? <Dashboard user={user} profile={profile} isAdmin={isAdmin} /> : <Navigate to="/setup-profile" replace />
             ) : (
               <Navigate to="/login" replace />
             )
