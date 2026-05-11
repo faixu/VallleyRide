@@ -89,9 +89,9 @@ const Home = () => {
   ];
 
   const fleet = [
-    { name: 'Swift Dzire / Etios', type: 'Sedan', seats: '4+1', price: 'Starting ₹2500/day', img: 'https://picsum.photos/seed/sedan/600/400' },
-    { name: 'Innova Crysta', type: 'Premium SUV', seats: '6+1', price: 'Starting ₹4500/day', img: 'https://picsum.photos/seed/suv/600/400' },
-    { name: 'Tempo Traveller', type: 'Luxury Van', seats: '12-17', price: 'Starting ₹6000/day', img: 'https://picsum.photos/seed/van/600/400' },
+    { name: 'Swift Dzire / Etios', type: 'Executive Sedan', seats: '4+1', price: '₹2500/day', img: 'https://images.unsplash.com/photo-1590362891991-f776e747a588?auto=format&fit=crop&q=80&w=1000', featured: true },
+    { name: 'Innova Crysta', type: 'Premium SUV', seats: '6+1', price: '₹4500/day', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=1000', featured: true },
+    { name: 'Tempo Traveller', type: 'Luxury Van', seats: '12-17', price: '₹6000/day', img: 'https://images.unsplash.com/photo-1599256629751-4d7208722237?auto=format&fit=crop&q=80&w=1000', featured: true },
   ];
 
   return (
@@ -350,24 +350,39 @@ const Home = () => {
             {fleet.map((car, idx) => (
               <motion.div 
                 key={idx}
-                whileHover={{ y: -10 }}
-                className="bg-white/5 rounded-3xl overflow-hidden border border-white/10 group"
+                whileHover={{ y: -12 }}
+                className="bg-white/5 rounded-[40px] overflow-hidden border border-white/10 group backdrop-blur-sm shadow-2xl"
               >
-                <div className="h-64 overflow-hidden">
-                  <img src={car.img} alt={car.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
+                <div className="h-72 relative overflow-hidden">
+                  <img src={car.img} alt={car.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" referrerPolicy="no-referrer" />
+                  <div className="absolute top-6 left-6 flex gap-2">
+                    <span className="bg-brand-gold text-brand-green px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg">
+                      <Shield size={12} fill="currentColor" /> Verified
+                    </span>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-green/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </div>
-                <div className="p-8 space-y-4">
+                <div className="p-8 space-y-6">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-2xl font-bold">{car.name}</h3>
-                      <p className="text-brand-gold font-semibold">{car.type}</p>
+                      <h3 className="text-2xl font-black tracking-tight">{car.name}</h3>
+                      <p className="text-brand-gold text-sm font-bold uppercase tracking-widest">{car.type}</p>
                     </div>
-                    <span className="bg-brand-gold/20 text-brand-gold px-3 py-1 rounded-lg text-sm font-bold">{car.seats} Seats</span>
+                    <div className="bg-white/10 px-4 py-2 rounded-2xl border border-white/10">
+                      <span className="text-xs font-black text-brand-gold tracking-tighter block leading-none">{car.seats}</span>
+                      <span className="text-[8px] uppercase tracking-widest font-bold text-white/40">Seats</span>
+                    </div>
                   </div>
-                  <p className="text-2xl font-bold text-white">{car.price}</p>
-                  <a href="tel:+916006580370" className="btn-secondary w-full py-3 flex items-center justify-center gap-2">
-                    Book Now <ArrowRight size={18} />
-                  </a>
+                  
+                  <div className="flex items-end justify-between border-t border-white/10 pt-6">
+                    <div>
+                      <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Starting from</p>
+                      <p className="text-3xl font-black text-white tracking-tighter">{car.price}</p>
+                    </div>
+                    <a href="tel:+916006580370" className="bg-brand-gold text-brand-green p-4 rounded-2xl transform group-hover:rotate-12 transition-transform shadow-xl">
+                      <ArrowRight size={20} strokeWidth={3} />
+                    </a>
+                  </div>
                 </div>
               </motion.div>
             ))}
