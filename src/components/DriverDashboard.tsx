@@ -123,7 +123,18 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ user, profile }) => {
              <Car size={40} />
           </div>
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Driver Center</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Driver Center</h2>
+              {profile.verified ? (
+                <div className="bg-green-100 text-green-700 px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] font-bold uppercase">
+                  <CheckCircle size={12} fill="currentColor" className="text-white bg-green-500 rounded-full" /> Verified
+                </div>
+              ) : (
+                <div className="bg-red-100 text-red-700 px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] font-bold uppercase">
+                  <XCircle size={12} fill="currentColor" className="text-white bg-red-500 rounded-full" /> Pending
+                </div>
+              )}
+            </div>
             <p className="text-gray-500 font-medium">{online ? 'You are visible to customers' : 'You are currently offline'}</p>
           </div>
         </div>

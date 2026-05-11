@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search, Navigation, Clock, Star, Car, Shield, Send, User } from 'lucide-react';
+import { MapPin, Search, Navigation, Clock, Star, Car, Shield, Send, User, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { APIProvider, Map, AdvancedMarker, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
-import { db, collection, addDoc, onSnapshot, query, where, orderBy, handleFirestoreError, OperationType } from '../firebase';
+import { db, collection, addDoc, onSnapshot, query, where, orderBy, handleFirestoreError, OperationType, limit, getDocs } from '../firebase';
 import toast from 'react-hot-toast';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
@@ -16,8 +16,13 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, profile }) 
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
   const [activeRide, setActiveRide] = useState<any>(null);
+  const [completedRides, setCompletedRides] = useState<any[]>([]);
   const [vehicleType, setVehicleType] = useState<'economy' | 'premium' | 'suv'>('economy');
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [reviewModal, setReviewModal] = useState<{ isOpen: boolean; rideId: string; driverId: string } | null>(null);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     // Listen for customer's active ride
@@ -28,7 +33,7 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, profile }) 
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribeActive = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
         setActiveRide({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
       } else {
@@ -38,7 +43,38 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, profile }) 
       handleFirestoreError(error, OperationType.GET, 'rides');
     });
 
-    return () => unsubscribe();
+    // Listen for completed rides (last 10)
+    const qCompleted = query(
+      collection(db, 'rides'),
+      where('customerId', '==', user.uid),
+      where('status', '==', 'completed'),
+      orderBy('completedAt', 'desc'),
+      limit(10)
+    );
+
+    const unsubscribeCompleted = onSnapshot(qCompleted, async (snapshot) => {
+      const rides = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // For each completed ride, check if it already has a review
+      const ridesWithReviewStatus = await Promise.all(rides.map(async (ride) => {
+        const reviewQuery = query(
+          collection(db, 'reviews'),
+          where('rideId', '==', ride.id),
+          limit(1)
+        );
+        const reviewSnap = await getDocs(reviewQuery);
+        return { ...ride, reviewed: !reviewSnap.empty };
+      }));
+
+      setCompletedRides(ridesWithReviewStatus);
+    }, (error) => {
+      console.error("Fetch completed rides error:", error);
+    });
+
+    return () => {
+      unsubscribeActive();
+      unsubscribeCompleted();
+    };
   }, [user.uid]);
 
   const requestRide = async () => {
@@ -70,6 +106,33 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, profile }) 
     }
   };
 
+  const submitReview = async () => {
+    if (!reviewModal || rating === 0) {
+      toast.error("Please select a rating");
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      await addDoc(collection(db, 'reviews'), {
+        rideId: reviewModal.rideId,
+        driverId: reviewModal.driverId,
+        customerId: user.uid,
+        customerName: profile.displayName,
+        rating,
+        comment,
+        createdAt: new Date().toISOString()
+      });
+      toast.success("Thank you for your feedback!");
+      setReviewModal(null);
+      setRating(0);
+      setComment('');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'reviews');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-65px)] overflow-hidden">
@@ -143,6 +206,33 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, profile }) 
                   <>Request Valley Ride <Send size={20} /></>
                 )}
               </button>
+
+              {/* Ride History / Pending Reviews */}
+              {completedRides.length > 0 && (
+                <div className="pt-6 border-t border-gray-100 space-y-4">
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <Clock size={16} className="text-brand-gold" /> Recent Rides
+                  </h3>
+                  <div className="space-y-3">
+                    {completedRides.map(ride => (
+                      <div key={ride.id} className="p-4 bg-gray-50 rounded-2xl space-y-2">
+                        <div className="flex justify-between items-start">
+                          <p className="text-xs font-bold text-gray-900 truncate pr-2">{ride.destination.address}</p>
+                          <span className="text-[10px] text-gray-400 whitespace-nowrap">{new Date(ride.completedAt).toLocaleDateString()}</span>
+                        </div>
+                        {!ride.reviewed && (
+                          <button 
+                            onClick={() => setReviewModal({ isOpen: true, rideId: ride.id, driverId: ride.driverId })}
+                            className="w-full py-2 bg-brand-gold/10 text-brand-gold rounded-xl text-xs font-bold flex items-center justify-center gap-1 hover:bg-brand-gold/20 transition-all"
+                          >
+                            <Star size={12} fill="currentColor" /> Rate Driver
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="bg-blue-50 p-4 rounded-2xl flex gap-3 text-blue-800">
                 <Shield size={20} className="shrink-0" />
@@ -260,6 +350,66 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, profile }) 
           </div>
         )}
       </div>
+
+      {/* Review Modal */}
+      <AnimatePresence>
+        {reviewModal?.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-green/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full space-y-6"
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-brand-gold/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Star size={32} className="text-brand-gold" fill="currentColor" />
+                </div>
+                <h3 className="text-xl font-bold text-brand-green">Rate Your Ride</h3>
+                <p className="text-sm text-gray-500 mt-1">How was your experience with our partner driver?</p>
+              </div>
+
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <button 
+                    key={s} 
+                    onClick={() => setRating(s)}
+                    className={`p-1 transition-all ${rating >= s ? 'text-brand-gold' : 'text-gray-200'} hover:scale-110`}
+                  >
+                    <Star size={36} fill={rating >= s ? "currentColor" : "none"} strokeWidth={2.5} />
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Tell us more (Optional)</p>
+                <textarea 
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Share details about the trip, vehicle, or driver..."
+                  className="w-full bg-gray-50 p-4 rounded-xl border-2 border-transparent focus:border-brand-gold outline-none transition-all text-sm h-24 resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={() => setReviewModal(null)}
+                  className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-xl font-bold text-sm hover:bg-gray-200 transition-all"
+                >
+                  Skip
+                </button>
+                <button 
+                  onClick={submitReview}
+                  disabled={submittingReview || rating === 0}
+                  className="flex-1 btn-secondary py-4 rounded-xl font-bold text-sm shadow-lg shadow-brand-gold/20 disabled:opacity-50"
+                >
+                  {submittingReview ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div> : 'Submit feedback'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

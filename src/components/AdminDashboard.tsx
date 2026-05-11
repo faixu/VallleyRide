@@ -96,15 +96,27 @@ interface DriverApplication {
   createdAt: any;
 }
 
+interface Review {
+  id: string;
+  rideId: string;
+  driverId: string;
+  customerId: string;
+  customerName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
 const AdminDashboard = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [rides, setRides] = useState<Ride[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [applications, setApplications] = useState<DriverApplication[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'bookings' | 'rides' | 'profiles' | 'content' | 'applications'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'rides' | 'profiles' | 'content' | 'applications' | 'reviews'>('bookings');
   
   const [siteContent, setSiteContent] = useState<SiteContent>({
     heroTitle: 'Ride Through Kashmir with',
@@ -164,12 +176,22 @@ const AdminDashboard = () => {
       handleFirestoreError(error, OperationType.GET, applicationsPath);
     });
 
+    // Listen for reviews
+    const reviewsPath = 'reviews';
+    const qReviews = query(collection(db, reviewsPath), orderBy('createdAt', 'desc'));
+    const unsubscribeReviews = onSnapshot(qReviews, (snapshot) => {
+      setReviews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Review[]);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, reviewsPath);
+    });
+
     return () => {
       unsubscribeBookings();
       unsubscribeRides();
       unsubscribeProfiles();
       unsubscribeContent();
       unsubscribeApps();
+      unsubscribeReviews();
     };
   }, []);
 
@@ -274,6 +296,7 @@ const AdminDashboard = () => {
                 { id: 'rides', label: 'Real-time Rides' },
                 { id: 'profiles', label: 'User Profiles' },
                 { id: 'applications', label: 'Driver Apps' },
+                { id: 'reviews', label: 'Reviews' },
                 { id: 'content', label: 'Manage Content' }
               ].map(tab => (
                 <button 
@@ -408,21 +431,31 @@ const AdminDashboard = () => {
                               <p className="text-sm font-bold text-gray-900">{driver.displayName}</p>
                               <div className="flex items-center gap-2">
                                 <div className={`w-1.5 h-1.5 rounded-full ${driver.status === 'online' ? 'bg-green-500' : 'bg-gray-300'}`} />
-                                <span className="text-[9px] font-bold text-gray-400 uppercase">{driver.status || 'offline'}</span>
+                                <span className={`text-[9px] font-bold uppercase ${driver.status === 'online' ? 'text-green-600' : 'text-gray-400'}`}>
+                                  {driver.status || 'offline'}
+                                </span>
+                                {driver.verified && <CheckCircle size={10} className="text-green-500" fill="currentColor" />}
                               </div>
                             </div>
                           </div>
                           
-                          <button 
-                            onClick={() => toggleAvailability(driver.uid, !!driver.isAvailable)}
-                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all shadow-sm ${
-                              driver.isAvailable 
-                              ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                              : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                            }`}
-                          >
-                            {driver.isAvailable ? 'Free' : 'Busy'}
-                          </button>
+                          <div className="flex flex-col items-end gap-1">
+                            <button 
+                              onClick={() => toggleAvailability(driver.uid, !!driver.isAvailable)}
+                              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all shadow-sm ${
+                                driver.isAvailable 
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                              }`}
+                            >
+                              {driver.isAvailable ? 'Available' : 'Engaged'}
+                            </button>
+                            {driver.verified ? (
+                              <span className="text-[8px] font-bold text-green-600/50 uppercase tracking-tighter">Verified Provider</span>
+                            ) : (
+                              <span className="text-[8px] font-bold text-red-500/50 uppercase tracking-tighter">Review Pending</span>
+                            )}
+                          </div>
                         </div>
                       ))
                     )}
@@ -441,10 +474,9 @@ const AdminDashboard = () => {
                   <thead className="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
                      <tr>
                         <th className="px-6 py-4">User</th>
-                        <th className="px-6 py-4">Role</th>
-                        <th className="px-6 py-4">App Status</th>
+                        <th className="px-6 py-4">Status</th>
                         <th className="px-6 py-4">Availability</th>
-                        <th className="px-6 py-4">Verification</th>
+                        <th className="px-6 py-4">Verified</th>
                         <th className="px-6 py-4 text-right">Actions</th>
                      </tr>
                   </thead>
@@ -463,7 +495,9 @@ const AdminDashboard = () => {
                           <td className="px-6 py-4">
                              <div className="flex items-center gap-2 uppercase text-[10px] font-bold">
                                 <div className={`w-2 h-2 rounded-full ${p.status === 'online' ? 'bg-green-500' : 'bg-gray-300'}`} />
-                                {p.status || 'offline'}
+                                <span className={p.status === 'online' ? 'text-green-600' : 'text-gray-400'}>
+                                  {p.status || 'offline'}
+                                </span>
                              </div>
                           </td>
                           <td className="px-6 py-4">
@@ -477,27 +511,33 @@ const AdminDashboard = () => {
                                  }`}
                                >
                                  <div className={`w-2 h-2 rounded-full ${p.isAvailable ? 'bg-green-500' : 'bg-orange-500'}`} />
-                                 {p.isAvailable ? 'Free for Bookings' : 'Currently Engaged'}
+                                 {p.isAvailable ? 'Available' : 'Busy'}
                                </button>
                              ) : '-'}
                           </td>
                           <td className="px-6 py-4">
                              {p.role === 'driver' ? (
-                               <div className="flex items-center gap-2">
-                                  {p.verified ? <Shield className="text-green-500" size={16} /> : <XCircle className="text-red-400" size={16} />}
-                                  <span className="text-xs font-medium">{p.verified ? 'Verified' : 'Pending'}</span>
-                               </div>
+                               <button 
+                                 onClick={() => toggleVerification(p.uid, p.verified)}
+                                 className={`transition-all hover:scale-110 p-1 rounded-full ${p.verified ? 'text-green-500 hover:bg-green-50' : 'text-red-500 hover:bg-red-50'}`}
+                                 title={p.verified ? 'Revoke Verification' : 'Verify Driver'}
+                               >
+                                  {p.verified ? <CheckCircle size={24} fill="currentColor" className="text-white bg-green-500 rounded-full" /> : <XCircle size={24} fill="currentColor" className="text-white bg-red-500 rounded-full" />}
+                               </button>
                              ) : '-'}
                           </td>
                           <td className="px-6 py-4 text-right">
-                             {p.role === 'driver' && (
-                               <button 
-                                 onClick={() => toggleVerification(p.uid, p.verified)}
-                                 className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${p.verified ? 'text-red-500 bg-red-50 hover:bg-red-500 hover:text-white' : 'text-green-600 bg-green-50 hover:bg-green-600 hover:text-white'}`}
-                               >
-                                 {p.verified ? 'Revoke Verification' : 'Verify Driver'}
-                               </button>
-                             )}
+                             <button 
+                               onClick={() => {
+                                 if (window.confirm('Are you sure you want to delete this user profile?')) {
+                                   deleteDoc(doc(db, 'profiles', p.uid));
+                                   toast.success('Profile deleted');
+                                 }
+                               }}
+                               className="text-gray-400 hover:text-red-500 transition-colors"
+                             >
+                               <Trash2 size={18} />
+                             </button>
                           </td>
                        </tr>
                      ))}
@@ -809,6 +849,79 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </section>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'reviews' && (
+          <div className="space-y-8">
+            <h2 className="text-3xl font-bold text-brand-green">Driver Reviews</h2>
+            <div className="grid gap-6">
+              {reviews.length === 0 ? (
+                <div className="bg-white p-12 rounded-3xl text-center border border-gray-100 shadow-sm">
+                  <p className="text-gray-400 font-medium">No reviews received yet.</p>
+                </div>
+              ) : (
+                reviews.map((review) => {
+                  const driver = profiles.find(p => p.uid === review.driverId);
+                  return (
+                    <div key={review.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between gap-6 relative overflow-hidden group">
+                      <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-gold" />
+                      <div className="space-y-4 flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex text-brand-gold">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star 
+                                  key={s} 
+                                  size={16} 
+                                  fill={review.rating >= s ? "currentColor" : "none"} 
+                                  className={review.rating >= s ? "text-brand-gold" : "text-gray-200"}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-xs text-gray-400 font-mono">Trip #{review.rideId.slice(0, 8)}</span>
+                          </div>
+                          <span className="text-xs text-gray-400">
+                            {format(new Date(review.createdAt), 'MMM d, yyyy h:mm a')}
+                          </span>
+                        </div>
+
+                        <div>
+                          <p className="text-sm text-gray-700 font-medium leading-relaxed bg-gray-50/50 p-4 rounded-2xl italic">
+                            "{review.comment || 'No comment provided'}"
+                          </p>
+                        </div>
+
+                        <div className="flex gap-8 pt-2">
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Customer</p>
+                            <p className="text-sm font-bold text-gray-900">{review.customerName}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Driver</p>
+                            <p className="text-sm font-bold text-brand-green">{driver?.displayName || 'Unknown Driver'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center md:items-end flex-col justify-center gap-2">
+                        <button 
+                          onClick={async () => {
+                            if (window.confirm('Delete this review?')) {
+                              await deleteDoc(doc(db, 'reviews', review.id));
+                              toast.success('Review deleted');
+                            }
+                          }}
+                          className="bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-red-500 p-3 rounded-xl transition-all"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}

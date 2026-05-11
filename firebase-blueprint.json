@@ -94,6 +94,20 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["fullName", "phoneNumber", "vehicleModel", "licenseDetails"]
+    },
+    "Review": {
+      "title": "Ride Review",
+      "description": "Rating and feedback left by customers after a ride.",
+      "type": "object",
+      "properties": {
+        "rideId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "driverId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["rideId", "customerId", "driverId", "rating", "createdAt"]
     }
   },
   "firestore": {
@@ -120,6 +134,10 @@
     "/driver_applications/{applicationId}": {
       "schema": "DriverApplication",
       "description": "Potential driver applications."
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Customer feedback and ratings for drivers."
     }
   }
 }

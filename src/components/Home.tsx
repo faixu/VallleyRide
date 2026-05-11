@@ -22,6 +22,7 @@ import { Link } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import BookingForm from './BookingForm';
+import CabSelection from './CabSelection';
 
 const Home = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -338,57 +339,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Fleet Section */}
-      <section id="fleet" className="section-padding bg-brand-green text-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tighter">Our Luxury Fleet</h2>
-            <p className="text-white/60 text-lg">Choose from our range of well-maintained vehicles for a comfortable journey.</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {fleet.map((car, idx) => (
-              <motion.div 
-                key={idx}
-                whileHover={{ y: -12 }}
-                className="bg-white/5 rounded-[40px] overflow-hidden border border-white/10 group backdrop-blur-sm shadow-2xl"
-              >
-                <div className="h-72 relative overflow-hidden">
-                  <img src={car.img} alt={car.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" referrerPolicy="no-referrer" />
-                  <div className="absolute top-6 left-6 flex gap-2">
-                    <span className="bg-brand-gold text-brand-green px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg">
-                      <Shield size={12} fill="currentColor" /> Verified
-                    </span>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-brand-green/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                </div>
-                <div className="p-8 space-y-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-2xl font-black tracking-tight">{car.name}</h3>
-                      <p className="text-brand-gold text-sm font-bold uppercase tracking-widest">{car.type}</p>
-                    </div>
-                    <div className="bg-white/10 px-4 py-2 rounded-2xl border border-white/10">
-                      <span className="text-xs font-black text-brand-gold tracking-tighter block leading-none">{car.seats}</span>
-                      <span className="text-[8px] uppercase tracking-widest font-bold text-white/40">Seats</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-end justify-between border-t border-white/10 pt-6">
-                    <div>
-                      <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Starting from</p>
-                      <p className="text-3xl font-black text-white tracking-tighter">{car.price}</p>
-                    </div>
-                    <a href="tel:+916006580370" className="bg-brand-gold text-brand-green p-4 rounded-2xl transform group-hover:rotate-12 transition-transform shadow-xl">
-                      <ArrowRight size={20} strokeWidth={3} />
-                    </a>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <CabSelection />
 
       {/* Testimonials */}
       <section id="testimonials" className="section-padding bg-gray-50">

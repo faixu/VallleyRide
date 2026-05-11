@@ -125,5 +125,23 @@ service cloud.firestore {
       allow create: if true; // Public application form
       allow read, update, delete: if isSystemAdmin() || isDatabaseAdmin();
     }
+
+    // Reviews Collection
+    match /reviews/{reviewId} {
+      function isValidReview(data) {
+        return isSignedIn() &&
+               data.rideId is string &&
+               data.customerId == request.auth.uid &&
+               data.driverId is string &&
+               data.rating is number &&
+               data.rating >= 1 && data.rating <= 5 &&
+               data.createdAt is string;
+      }
+
+      allow get: if isSignedIn() && (resource.data.customerId == request.auth.uid || isAdmin() || resource.data.driverId == request.auth.uid);
+      allow list: if isSignedIn() && (resource.data.customerId == request.auth.uid || isAdmin() || resource.data.driverId == request.auth.uid);
+      allow create: if isValidReview(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
   }
 }
