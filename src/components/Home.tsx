@@ -89,9 +89,9 @@ const Home = () => {
   ];
 
   const fleet = [
-    { name: 'Swift Dzire / Etios', type: 'Executive Sedan', seats: '4+1', price: '₹2500/day', img: 'https://images.unsplash.com/photo-1590362891991-f776e747a588?auto=format&fit=crop&q=80&w=1000', featured: true },
-    { name: 'Innova Crysta', type: 'Premium SUV', seats: '6+1', price: '₹4500/day', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=1000', featured: true },
-    { name: 'Tempo Traveller', type: 'Luxury Van', seats: '12-17', price: '₹6000/day', img: 'https://images.unsplash.com/photo-1599256629751-4d7208722237?auto=format&fit=crop&q=80&w=1000', featured: true },
+    { name: 'Swift Dzire / Etios', type: 'Executive Sedan', seats: '4+1', price: '₹2500/day', img: '/src/assets/images/regenerated_image_1778487819455.jpg', featured: true },
+    { name: 'Innova Crysta', type: 'Premium SUV', seats: '6+1', price: '₹4500/day', img: '/src/assets/images/regenerated_image_1778487817919.avif', featured: true },
+    { name: 'Tempo Traveller', type: 'Luxury Van', seats: '12-17', price: '₹6000/day', img: '/src/assets/images/regenerated_image_1778487816168.jpg', featured: true },
   ];
 
   return (
@@ -319,7 +319,7 @@ const Home = () => {
           </div>
           <div className="relative">
             <img 
-              src={siteContent?.aboutImage || "https://picsum.photos/seed/driver/800/1000"} 
+              src={siteContent?.aboutImage || "/src/assets/images/regenerated_image_1778487888442.jpg"} 
               alt="Professional Driver" 
               className="rounded-3xl shadow-2xl"
               referrerPolicy="no-referrer"
