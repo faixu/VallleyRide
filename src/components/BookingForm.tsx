@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Calendar, Users, Clock } from 'lucide-react';
+import { MapPin, Calendar, Users, Clock, Car } from 'lucide-react';
 import { db, addDoc, collection, handleFirestoreError, OperationType } from '../firebase';
 import { serverTimestamp } from 'firebase/firestore';
 import toast from 'react-hot-toast';
@@ -10,7 +10,8 @@ const BookingForm = () => {
     pickup: '',
     drop: '',
     date: '',
-    passengers: '1-4',
+    vehicleType: 'economy',
+    passengers: '1',
     customerPhone: ''
   });
 
@@ -34,7 +35,8 @@ const BookingForm = () => {
         pickup: '',
         drop: '',
         date: '',
-        passengers: '1-4',
+        vehicleType: 'economy',
+        passengers: '1',
         customerPhone: ''
       });
     } catch (error) {
@@ -74,6 +76,22 @@ const BookingForm = () => {
             className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-gold" 
           />
         </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+            <Car size={14} /> Select Cab / Vehicle Type
+          </label>
+          <select 
+            value={formData.vehicleType}
+            onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
+            className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-gold font-medium"
+          >
+            <option value="economy">Executive Sedan (4 Seats)</option>
+            <option value="premium">Premium SUV (7 Seats)</option>
+            <option value="suv">Luxury Van (12-17 Seats)</option>
+          </select>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-600 flex items-center gap-2">
@@ -89,16 +107,16 @@ const BookingForm = () => {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-600 flex items-center gap-2">
-              <Users size={14} /> Passengers
+              <Users size={14} /> No. of Persons
             </label>
             <select 
               value={formData.passengers}
               onChange={(e) => setFormData({ ...formData, passengers: e.target.value })}
               className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-gold"
             >
-              <option>1-4</option>
-              <option>5-7</option>
-              <option>8+</option>
+              {[1, 2, 3, 4, 5, 6, 7, 8, '9+'].map(num => (
+                <option key={num} value={num}>{num} Person{num !== 1 ? 's' : ''}</option>
+              ))}
             </select>
           </div>
         </div>
