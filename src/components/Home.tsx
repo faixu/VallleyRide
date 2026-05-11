@@ -27,6 +27,18 @@ const Home = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [siteContent, setSiteContent] = useState<any>(null);
+  const [logoClicks, setLogoClicks] = useState(0);
+  const [showAdminLink, setShowAdminLink] = useState(false);
+
+  const handleLogoClick = () => {
+    const newClicks = logoClicks + 1;
+    if (newClicks >= 5) {
+      setShowAdminLink(true);
+      setLogoClicks(0);
+    } else {
+      setLogoClicks(newClicks);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -87,14 +99,18 @@ const Home = () => {
       {/* Navbar */}
       <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-lg py-3' : 'bg-transparent py-5'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-          <div className="flex items-center gap-2">
+          <motion.div 
+            whileTap={{ scale: 0.95 }}
+            onClick={handleLogoClick}
+            className="flex items-center gap-2 cursor-pointer"
+          >
             <div className="bg-brand-green p-2 rounded-lg">
               <Car className="text-brand-gold" size={24} />
             </div>
             <span className={`text-2xl font-bold tracking-tighter ${scrolled ? 'text-brand-green' : 'text-white'}`}>
               VALLEY<span className="text-brand-gold">RIDE</span>
             </span>
-          </div>
+          </motion.div>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
@@ -117,6 +133,14 @@ const Home = () => {
                 </a>
               )
             ))}
+            {showAdminLink && (
+              <Link 
+                to="/admin" 
+                className={`font-bold text-red-500 hover:text-red-600 transition-colors ${scrolled ? 'opacity-100' : 'opacity-80'}`}
+              >
+                ADMIN PORTAL
+              </Link>
+            )}
             <a href="tel:+916006580370" className="btn-primary flex items-center gap-2">
               <Phone size={18} /> Call Now
             </a>
@@ -158,6 +182,15 @@ const Home = () => {
                   </a>
                 )
               ))}
+              {showAdminLink && (
+                <Link 
+                  to="/admin" 
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-lg font-black text-red-600 border-b border-red-100 pb-2"
+                >
+                  ADMIN PORTAL
+                </Link>
+              )}
               <a href="tel:+916006580370" className="btn-primary text-center py-4">Call Now</a>
             </motion.div>
           )}
