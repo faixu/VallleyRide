@@ -60,6 +60,7 @@ interface Booking {
   drop: string;
   date: string;
   passengers: string;
+  vehicleType?: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   createdAt: any;
   customerPhone: string;
@@ -371,7 +372,7 @@ const AdminDashboard = () => {
                 {filteredBookings.map((booking) => (
                   <div key={booking.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex flex-col lg:flex-row justify-between gap-6">
-                      <div className="flex-1 grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="flex-1 grid md:grid-cols-2 lg:grid-cols-6 gap-6">
                         <div className="space-y-1">
                           <p className="text-xs font-bold text-gray-400 uppercase">Route</p>
                           <div className="flex items-center gap-2 text-brand-green font-bold">
@@ -382,6 +383,18 @@ const AdminDashboard = () => {
                           <p className="text-xs font-bold text-gray-400 uppercase">Schedule</p>
                           <div className="flex items-center gap-2 text-gray-700 font-semibold uppercase">
                             <Calendar size={16} /> <span>{booking.date}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-gray-400 uppercase">Cab Type</p>
+                          <div className="flex items-center gap-2 text-brand-gold font-bold uppercase text-[10px]">
+                            <Car size={16} /> <span>{booking.vehicleType || 'Not Specified'}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-gray-400 uppercase">Persons</p>
+                          <div className="flex items-center gap-2 text-gray-700 font-bold">
+                            <Users size={16} /> <span>{booking.passengers}</span>
                           </div>
                         </div>
                         <div className="space-y-1">
