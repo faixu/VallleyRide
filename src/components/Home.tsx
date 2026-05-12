@@ -69,17 +69,17 @@ const Home = () => {
 
   const services = [
     {
-      title: 'Airport Transfers',
+      title: 'Airport Transfers Srinagar',
       desc: 'Seamless pickup and drop from Srinagar Airport to any destination in Kashmir.',
       icon: <Car className="text-brand-gold" size={32} />
     },
     {
-      title: 'Local Sightseeing',
-      desc: 'Explore Srinagar, Dal Lake, Mughal Gardens with our expert local drivers.',
+      title: 'Kashmir Sightseeing',
+      desc: 'Explore Srinagar, Dal Lake, and Mughal Gardens with our expert local drivers.',
       icon: <MapPin className="text-brand-gold" size={32} />
     },
     {
-      title: 'Outstation Trips',
+      title: 'Outstation Cab Kashmir',
       desc: 'Comfortable long-distance rides to Gulmarg, Pahalgam, Sonamarg, and beyond.',
       icon: <ChevronRight className="text-brand-gold" size={32} />
     },
@@ -98,6 +98,31 @@ const Home = () => {
 
   return (
     <div className="min-h-screen font-sans text-gray-900 bg-white">
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "TaxiService",
+          "name": "Valley Ride Kashmir",
+          "description": "Premium cab service in Kashmir. Experts in Srinagar airport transfers, local sightseeing, and outstation trips to Gulmarg and Pahalgam.",
+          "url": "https://vallley-ride.vercel.app/",
+          "telephone": "+916006580370",
+          "areaServed": {
+            "@type": "State",
+            "name": "Jammu and Kashmir"
+          },
+          "provider": {
+            "@type": "LocalBusiness",
+            "name": "Valley Ride",
+            "image": "https://vallley-ride.vercel.app/src/assets/images/regenerated_image_1778487817919.avif",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Srinagar",
+              "addressRegion": "Kashmir",
+              "addressCountry": "IN"
+            }
+          }
+        })}
+      </script>
       {/* Navbar */}
       <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-lg py-3' : 'bg-transparent py-5'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
@@ -218,13 +243,13 @@ const Home = () => {
             className="text-white space-y-6"
           >
             <span className="bg-brand-gold/20 text-brand-gold px-4 py-1 rounded-full text-sm font-bold tracking-widest uppercase border border-brand-gold/30">
-              Premium Cab Service in Kashmir
+              Best Cab Service in Kashmir
             </span>
             <h1 className="text-5xl md:text-7xl font-bold leading-[1.1] tracking-tighter">
-              {siteContent?.heroTitle || "Ride Through Kashmir with"} <span className="text-brand-gold">{siteContent?.heroTitleAccent || "Comfort & Trust"}</span>
+              {siteContent?.heroTitle || "Premium Cab Booking in"} <span className="text-brand-gold">{siteContent?.heroTitleAccent || "Kashmir & Srinagar"}</span>
             </h1>
             <p className="text-xl text-gray-300 max-w-lg">
-              {siteContent?.heroSubtitle || "Book your premium taxi for airport transfers, local sightseeing, and outstation trips. Reliable, safe, and scenic journeys await."}
+              {siteContent?.heroSubtitle || "Book your premium taxi for Srinagar airport transfers, local sightseeing, and outstation trips to Gulmarg and Pahalgam. Reliable and safe."}
             </p>
             <div className="flex flex-wrap gap-4 pt-4">
               <a href={`tel:${siteContent?.phone || "+916006580370"}`} className="btn-primary px-8 py-4 text-lg flex items-center gap-2">
