@@ -9,6 +9,9 @@ import Dashboard from './components/Dashboard';
 import ProfileSetup from './components/ProfileSetup';
 import ErrorBoundary from './components/ErrorBoundary';
 import DriverApplication from './components/DriverApplication';
+import AboutUs from './components/AboutUs';
+import Terms from './components/Terms';
+import PrivacyPolicy from './components/PrivacyPolicy';
 
 const App = () => {
   const [user, setUser] = useState<any>(null);
@@ -65,6 +68,9 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/drive" element={<DriverApplication />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         
         <Route 
           path="/login" 

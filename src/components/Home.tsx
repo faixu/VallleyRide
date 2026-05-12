@@ -60,6 +60,7 @@ const Home = () => {
 
   const navLinks = [
     { name: 'Home', href: '#' },
+    { name: 'About Us', href: '/about' },
     { name: 'Services', href: '#services' },
     { name: 'Our Fleet', href: '#fleet' },
     { name: 'Drive with Us', href: '/drive' },
@@ -511,8 +512,8 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-6 pt-10 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-white/40 text-sm">
           <p>© 2024 Valley Ride Kashmir. All rights reserved.</p>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-white">Privacy Policy</a>
-            <a href="#" className="hover:text-white">Terms of Service</a>
+            <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-white">Terms of Service</Link>
           </div>
         </div>
       </footer>
